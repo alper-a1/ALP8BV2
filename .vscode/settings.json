@@ -1,0 +1,17 @@
+{
+    "verilog.linting.linter": "verilator",
+    "verilog.linting.verilator.arguments": "-Wall -sv --lint-only",
+    // --- C++ Settings ---
+    "[cpp]": {
+        // Explicitly tell VS Code to use clangd for C++
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    // --- Verilog / SystemVerilog Settings ---
+    "[verilog]": {
+        // Tell VS Code to use the mshr-h extension for Verilog
+        "editor.defaultFormatter": "mshr-h.veriloghdl"
+    },
+    "[systemverilog]": {
+        "editor.defaultFormatter": "mshr-h.veriloghdl"
+    },
+}
