@@ -1,4 +1,4 @@
-`include "alu_defs.sv"
+`include "alu_defs.svh"
 
 module alu
   import alu_defs::*;
