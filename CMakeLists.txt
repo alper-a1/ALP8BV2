@@ -43,12 +43,13 @@ function(add_hardware_test TARGET_NAME TOP_MODULE CPP_TB VERILOG_SOURCES VERILOG
 endfunction()
 
 # ALU TESTBENCH
-set(ALU_SOURCES "src/alu/alu.sv" "src/alu/alu_defs.sv")
+set(ALU_SOURCES "src/alu/alu.sv" "src/alu/alu_defs.svh")
 set(ALU_INCLUDES "src/alu")
-add_hardware_test(Vsim_alu alu "sim/src/test/tb_alu.cpp" "${ALU_SOURCES}" "${ALU_INCLUDES}")
+add_hardware_test(Vtbsim_alu alu "sim/src/test/tb_alu.cpp" "${ALU_SOURCES}" "${ALU_INCLUDES}")
 
-
-
+set(RAM_SOURCES "src/ram/ram.sv" "src/ram/tb_ram_top.sv")
+set(RAM_INCLUDES "src/ram")
+add_hardware_test(Vtbsim_ram ram "sim/src/test/tb_ram.cpp" "${RAM_SOURCES}" "${RAM_INCLUDES}")
 
 # (Optional: This is where you will link SDL2 later)
 # find_package(SDL2 REQUIRED)
