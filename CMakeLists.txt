@@ -43,7 +43,7 @@ function(add_hardware_test TARGET_NAME TOP_MODULE CPP_TB VERILOG_SOURCES VERILOG
 endfunction()
 
 # ALU TESTBENCH
-set(ALU_SOURCES "src/alu/alu.sv" "src/alu/alu_defs.svh")
+set(ALU_SOURCES "src/alu/alu.sv" "src/alu/alu_defs.sv")
 set(ALU_INCLUDES "src/alu")
 add_hardware_test(Vtbsim_alu alu "sim/src/test/tb_alu.cpp" "${ALU_SOURCES}" "${ALU_INCLUDES}")
 
