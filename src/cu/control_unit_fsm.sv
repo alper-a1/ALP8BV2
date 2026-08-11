@@ -10,7 +10,7 @@ module control_unit_fsm
     input logic carry_flag,
 
     input logic [7:0] opcode,
-    output control_signals_t
+    output control_signals_t ctrl
 );
 
 endmodule
