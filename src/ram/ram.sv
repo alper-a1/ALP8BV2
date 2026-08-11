@@ -11,6 +11,7 @@ module ram (
 );
 
   // internal memory; public so c++ accessible 
+  // required such that programs can be loaded via c++
   logic [7:0] mem[255:0]  /*verilator public*/;
 
   always_ff @(posedge clk) begin

@@ -47,7 +47,8 @@ set(ALU_SOURCES "src/alu/alu.sv" "src/alu/alu_defs.svh")
 set(ALU_INCLUDES "src/alu")
 add_hardware_test(Vtbsim_alu alu "sim/src/test/tb_alu.cpp" "${ALU_SOURCES}" "${ALU_INCLUDES}")
 
-set(RAM_SOURCES "src/ram/ram.sv" "src/ram/tb_ram_top.sv")
+# RAM TESTBENCH
+set(RAM_SOURCES "src/ram/ram.sv")
 set(RAM_INCLUDES "src/ram")
 add_hardware_test(Vtbsim_ram ram "sim/src/test/tb_ram.cpp" "${RAM_SOURCES}" "${RAM_INCLUDES}")
 
