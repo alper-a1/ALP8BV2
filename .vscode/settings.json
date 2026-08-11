@@ -1,6 +1,7 @@
 {
     "verilog.linting.linter": "verilator",
-    "verilog.linting.verilator.arguments": "-Wall -sv --lint-only",
+    // super annoying; need to list every directory for linting.
+    "verilog.linting.verilator.arguments": "-Wall -sv -y src/cu -y src/dp -y src/dp/alu",
     // --- C++ Settings ---
     "[cpp]": {
         // Explicitly tell VS Code to use clangd for C++
