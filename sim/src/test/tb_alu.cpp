@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     // Instantiate the hardware
     auto contextp = std::make_unique<VerilatedContext>();
     contextp->commandArgs(argc, argv);
-    auto sim = std::make_unique<Valu>(contextp.get());
+    auto sim = std::make_unique<Valu>(contextp.get(), "ALU");
 
     std::println("Running testbench for {}.", sim->name());
 
@@ -181,6 +181,8 @@ int main(int argc, char **argv) {
             }
         }
     }
+
+    sim->final();
 
     if (!errors.empty()) {
         std::println(stderr, "Hardware Verification FAILED with {} errors:", errors.size());
