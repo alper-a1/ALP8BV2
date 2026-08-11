@@ -3,7 +3,6 @@
 #include <memory>
 #include <print>
 #include <random>
-#include <stdckdint.h>
 #include <string>
 #include <vector>
 
@@ -119,9 +118,9 @@ int main(int argc, char **argv) {
     // Instantiate the hardware
     auto contextp = std::make_unique<VerilatedContext>();
     contextp->commandArgs(argc, argv);
-    auto top = std::make_unique<Valu>(contextp.get());
+    auto sim = std::make_unique<Valu>(contextp.get());
 
-    std::println("Running testbench for {}.", top->name());
+    std::println("Running testbench for {}.", sim->name());
 
     std::vector<std::string> errors;
 
@@ -139,19 +138,19 @@ int main(int argc, char **argv) {
         uint8_t input_cin = static_cast<uint8_t>(cin_distrib(gen));
 
         // feed numeric inputs
-        top->a = input_a;
-        top->b = input_b;
-        top->cin_flag = input_cin;
+        sim->a = input_a;
+        sim->b = input_b;
+        sim->cin_flag = input_cin;
 
         for (auto aluop : magic_enum::enum_values<Valu_alu_defs::alu_op_t>()) {
             // get the correct model ALU results to compare to.
             ModelALUResult correct = model_alu(aluop, input_a, input_b, input_cin);
 
             // run the sim to get the simulated results
-            top->opcode = aluop;
-            top->eval();
+            sim->opcode = aluop;
+            sim->eval();
 
-            log_mismatch(*top, correct, errors, aluop, input_a, input_b);
+            log_mismatch(*sim, correct, errors, aluop, input_a, input_b);
         }
     }
 
@@ -164,9 +163,9 @@ int main(int argc, char **argv) {
     for (auto input_a : edge_a) {
         for (auto input_b : edge_b) {
             for (auto input_cin : {0, 1}) {
-                top->a = input_a;
-                top->b = input_b;
-                top->cin_flag = input_cin;
+                sim->a = input_a;
+                sim->b = input_b;
+                sim->cin_flag = input_cin;
 
                 // test every operation for the boundry values.
                 for (auto aluop : magic_enum::enum_values<Valu_alu_defs::alu_op_t>()) {
@@ -174,10 +173,10 @@ int main(int argc, char **argv) {
                     ModelALUResult correct = model_alu(aluop, input_a, input_b, input_cin);
 
                     // run the sim to get the simulated results
-                    top->opcode = aluop;
-                    top->eval();
+                    sim->opcode = aluop;
+                    sim->eval();
 
-                    log_mismatch(*top, correct, errors, aluop, input_a, input_b);
+                    log_mismatch(*sim, correct, errors, aluop, input_a, input_b);
                 }
             }
         }
@@ -193,6 +192,6 @@ int main(int argc, char **argv) {
         return 1; // Non-zero exit code means failure
     }
 
-    std::println("Testbench finished for {}. ALL TESTS PASSED.", top->name());
+    std::println("Testbench finished for {}. ALL TESTS PASSED.", sim->name());
     return 0; // Success
 }
