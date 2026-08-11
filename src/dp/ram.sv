@@ -5,7 +5,6 @@ module ram (
     input logic clk,
     input logic [7:0] addr,
     input logic we,
-    input logic oe,
     input logic [7:0] d_in,
     output logic [7:0] d_out
 );
@@ -20,6 +19,6 @@ module ram (
     end
   end
 
-  assign d_out = oe ? mem[addr] : 8'b0;
+  assign d_out = mem[addr];
 
 endmodule

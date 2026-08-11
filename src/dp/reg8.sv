@@ -3,7 +3,6 @@
 module reg8 (
     input logic clk,
     input logic [7:0] d_in,
-    input logic oe,
     input logic we,
     output logic [7:0] d_out
 );
@@ -17,6 +16,6 @@ module reg8 (
     end
   end
 
-  assign d_out = oe ? val : 8'b0;
+  assign d_out = val;
 
 endmodule

@@ -30,7 +30,6 @@ int main(int argc, char **argv) {
         sim->addr = addr;
         sim->d_in = data;
         sim->we = 1;
-        sim->oe = 0;
         sim->eval();
         tick();
         sim->we = 0;
@@ -40,14 +39,11 @@ int main(int argc, char **argv) {
     // check that reading addr combinationally yields expected, without a clk pulse
     auto check_read = [&](uint8_t addr, uint8_t expected, const std::string &what) {
         sim->addr = addr;
-        sim->oe = 1;
         sim->eval();
         if (sim->d_out != expected) {
             errors.emplace_back(std::format("err: {} (addr=0x{:02X}, expected=0x{:02X}, got=0x{:02X})", what, addr,
                                             expected, sim->d_out));
         }
-        sim->oe = 0;
-        sim->eval();
     };
 
     // uninitialized memory: document/lock in startup state
@@ -57,17 +53,11 @@ int main(int argc, char **argv) {
     sim->addr = 0x20;
     sim->d_in = 0xAA;
     sim->we = 1;
-    sim->oe = 0;
     sim->eval();
 
     // no write shouldve occured, since clk did not pulse.
     if (sim->ram->mem[0x20] != 0) {
         errors.emplace_back("err: write occurred without clk pulse");
-    }
-
-    // ensure that d_out is 0 when output is not enabled.
-    if (sim->d_out != 0) {
-        errors.emplace_back("err: d_out not zero when oe=0");
     }
 
     // pulse clock
@@ -84,7 +74,6 @@ int main(int argc, char **argv) {
     sim->d_in = 0x12;
     sim->addr = 0x80;
     sim->we = 1;
-    sim->oe = 0;
     sim->eval();
 
     if (sim->ram->mem[0x80] != 0) {
@@ -99,25 +88,12 @@ int main(int argc, char **argv) {
         errors.emplace_back("err: write occured without we");
     }
 
-    // oe toggling with no clk edge and addr held constant
+    // addr held constant, output should reflect mem contents with no clk edge
     sim->addr = 0x20;
-    sim->oe = 1;
     sim->eval();
     if (sim->d_out != 0xAA) {
-        errors.emplace_back("err: d_out incorrect right after oe asserted (no clk edge)");
+        errors.emplace_back("err: d_out incorrect on stable addr (no clk edge)");
     }
-    sim->oe = 0;
-    sim->eval();
-    if (sim->d_out != 0) {
-        errors.emplace_back("err: d_out did not drop to 0 after oe deasserted (no clk edge)");
-    }
-    sim->oe = 1;
-    sim->eval();
-    if (sim->d_out != 0xAA) {
-        errors.emplace_back("err: d_out did not come back after re-asserting oe (no clk edge)");
-    }
-    sim->oe = 0;
-    sim->eval();
 
     // write does not clobber other addresses
     check_read(0x21, 0x00, "adjacent address was clobbered by unrelated write");
@@ -129,7 +105,6 @@ int main(int argc, char **argv) {
     sim->addr = 0x40;
     sim->d_in = 0x55;
     sim->we = 1;
-    sim->oe = 1;
     sim->eval();
     if (sim->d_out != 0x00) {
         errors.emplace_back(
