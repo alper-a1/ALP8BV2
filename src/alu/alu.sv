@@ -33,20 +33,20 @@ module alu
       ALU_XOR: result = a ^ b;
 
       ALU_SHL: begin
-        result = a << 1;
+        result = a << 8'd1;
         cout_flag = a[7];
       end
 
       ALU_SHR: begin
-        result = a >> 1;
+        result = a >> 8'd1;
         cout_flag = a[0];
       end
 
       ALU_NOT: result = ~a;
 
-      ALU_INC: result = a + 1;
+      ALU_INC: result = a + 8'd1;
 
-      ALU_DEC: result = a - 1;
+      ALU_DEC: result = a - 8'd1;
 
       default: ;  // defaults are handled at the top
     endcase

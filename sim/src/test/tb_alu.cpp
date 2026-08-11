@@ -1,6 +1,5 @@
-#include "Valu.h" // The Verilator-generated header for alu.sv
-#include "Valu_alu_defs.h"
 #include <cstdint>
+#include <format>
 #include <memory>
 #include <print>
 #include <random>
@@ -11,21 +10,108 @@
 #include <magic_enum/magic_enum.hpp>
 #include <verilated.h>
 
-// logs mismatch into the string vector if occured
-void log_mismatch(std::vector<std::string> &log, Valu_alu_defs::alu_op_t op, uint8_t a, uint8_t b, uint8_t expected,
-                  uint8_t recieved) {
-    if (expected != recieved) {
-        log.emplace_back(std::format("mismatch on op={} a={} b={} expected={} got={}", magic_enum::enum_name(op), a, b,
-                                     expected, recieved));
+// verilator generated headers
+#include "Valu.h"
+#include "Valu_alu_defs.h"
+// ---
+
+inline constexpr int NOISE_TEST_COUNT = 1000;
+
+struct ModelALUResult {
+    uint8_t result;
+    uint8_t cout_flag;
+    uint8_t zero_flag;
+};
+
+ModelALUResult model_alu(Valu_alu_defs::alu_op_t op, uint8_t a, uint8_t b, uint8_t cin) {
+    ModelALUResult out{};
+
+    switch (op) {
+    case Valu_alu_defs::alu_op_t::ALU_AND: {
+        out.result = a & b;
+        out.cout_flag = 0;
+        break;
     }
+    case Valu_alu_defs::alu_op_t::ALU_OR: {
+        out.result = a | b;
+        out.cout_flag = 0;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_XOR: {
+        out.result = a ^ b;
+        out.cout_flag = 0;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_NOT: {
+        out.result = ~a;
+        out.cout_flag = 0;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_SHL: {
+        out.result = a << 1;
+        out.cout_flag = (a & 0b1000'0000) >> 7;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_SHR: {
+        out.result = a >> 1;
+        out.cout_flag = a & 0b1;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_ADD: {
+        out.result = a + b;
+        out.cout_flag = ((static_cast<uint16_t>(a) + b) >> 8) & 1;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_ADC: {
+        out.result = a + b + cin;
+        out.cout_flag = ((static_cast<uint16_t>(a) + b + cin) >> 8) & 1;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_SUB: {
+        out.result = a - b;
+        out.cout_flag = (a < b); // if A is smaller a borrow (1) is generated
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_SBC: {
+        out.result = a - b - cin;
+        out.cout_flag = ((static_cast<uint16_t>(a) - static_cast<uint16_t>(b) - cin) >> 8) & 1;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_INC: {
+        out.result = a + 1;
+        out.cout_flag = 0;
+        break;
+    }
+    case Valu_alu_defs::alu_op_t::ALU_DEC: {
+        out.result = a - 1;
+        out.cout_flag = 0;
+        break;
+    }
+    }
+    out.zero_flag = out.result == 0;
+
+    return out;
 }
 
-void log_mismatch_carry(std::vector<std::string> &log, Valu_alu_defs::alu_op_t op, uint8_t a, uint8_t b, uint8_t cin,
-                        uint8_t exp_res, uint8_t rec_res, uint8_t exp_c, uint8_t rec_c) {
-    if (exp_res != rec_res || exp_c != rec_c) {
-        log.emplace_back(std::format(
-            "mismatch on op={} a={} b={} cin={} expected result={} got result={} expected cout={} got cout={}",
-            magic_enum::enum_name(op), a, b, cin, exp_res, rec_res, exp_c, rec_c));
+// compare the sim results to the model results to ensure matching, log error if mismatch found.
+void log_mismatch(const Valu &sim, const ModelALUResult &correct, std::vector<std::string> &errors,
+                  Valu_alu_defs::alu_op_t aluop, uint8_t a, uint8_t b) {
+    // result mismatch
+    if (sim.result != correct.result) {
+        errors.emplace_back(std::format("result mismatch: op={} a={} b={} expected={} got={}",
+                                        magic_enum::enum_name(aluop), a, b, correct.result, sim.result));
+    }
+
+    // flags mismatch cout
+    if (sim.cout_flag != correct.cout_flag) {
+        errors.emplace_back(std::format("flag mismatch: op={} a={} b={} exp_cout={} got_cout={} ",
+                                        magic_enum::enum_name(aluop), a, b, correct.cout_flag, sim.cout_flag));
+    }
+
+    // flags mismatch zero
+    if (sim.zero_flag != correct.zero_flag) {
+        errors.emplace_back(std::format("flag mismatch: op={} a={} b={} exp_zero={} got_zero={} ",
+                                        magic_enum::enum_name(aluop), a, b, correct.zero_flag, sim.zero_flag));
     }
 }
 
@@ -47,7 +133,7 @@ int main(int argc, char **argv) {
     std::uniform_int_distribution<int> in_distrib(0, 255);
     std::bernoulli_distribution cin_distrib(0.5);
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < NOISE_TEST_COUNT; i++) {
         uint8_t input_a = static_cast<uint8_t>(in_distrib(gen));
         uint8_t input_b = static_cast<uint8_t>(in_distrib(gen));
         uint8_t input_cin = static_cast<uint8_t>(cin_distrib(gen));
@@ -57,90 +143,50 @@ int main(int argc, char **argv) {
         top->b = input_b;
         top->cin_flag = input_cin;
 
-        // non flag related tests'
-        // AND
-        uint8_t expected_and = input_a & input_b;
-        top->opcode = Valu_alu_defs::ALU_AND;
-        top->eval();
-        log_mismatch(errors, Valu_alu_defs::ALU_AND, input_a, input_b, expected_and, top->result);
+        for (auto aluop : magic_enum::enum_values<Valu_alu_defs::alu_op_t>()) {
+            // get the correct model ALU results to compare to.
+            ModelALUResult correct = model_alu(aluop, input_a, input_b, input_cin);
 
-        // OR
-        uint8_t expected_or = input_a | input_b;
-        top->opcode = Valu_alu_defs::ALU_OR;
-        top->eval();
-        log_mismatch(errors, Valu_alu_defs::ALU_OR, input_a, input_b, expected_or, top->result);
+            // run the sim to get the simulated results
+            top->opcode = aluop;
+            top->eval();
 
-        // XOR
-        uint8_t expected_xor = input_a ^ input_b;
-        top->opcode = Valu_alu_defs::ALU_XOR;
-        top->eval();
-        log_mismatch(errors, Valu_alu_defs::ALU_XOR, input_a, input_b, expected_xor, top->result);
-
-        // NOT
-        uint8_t expected_not = ~input_a;
-        top->opcode = Valu_alu_defs::ALU_NOT;
-        top->eval();
-        log_mismatch(errors, Valu_alu_defs::ALU_NOT, input_a, input_b, expected_not, top->result);
-
-        // flag related tests
-
-        // SHL
-        uint8_t expected_shl = input_a << 1;
-        uint8_t expected_shl_cout = (input_a & 0b1000'0000) >> 7;
-        top->opcode = Valu_alu_defs::ALU_SHL;
-        top->eval();
-        log_mismatch_carry(errors, Valu_alu_defs::ALU_SHL, input_a, input_b, input_cin, expected_shl, top->result,
-                           expected_shl_cout, top->cout_flag);
-
-        // SHR
-        uint8_t expected_shr = input_a >> 1;
-        uint8_t expected_shr_cout = input_a & 0b0000'0001;
-        top->opcode = Valu_alu_defs::ALU_SHR;
-        top->eval();
-        log_mismatch_carry(errors, Valu_alu_defs::ALU_SHR, input_a, input_b, input_cin, expected_shr, top->result,
-                           expected_shr_cout, top->cout_flag);
-
-        // ADD
-        uint8_t expected_add = input_a + input_b;
-        uint16_t temp_add = static_cast<uint16_t>(input_a) + input_b;
-        uint8_t expected_add_cout = (temp_add >> 8) & 1;
-        top->opcode = Valu_alu_defs::ALU_ADD;
-        top->eval();
-        log_mismatch_carry(errors, Valu_alu_defs::ALU_ADD, input_a, input_b, input_cin, expected_add, top->result,
-                           expected_add_cout, top->cout_flag);
-
-        // ADC
-        uint8_t expected_adc = input_a + input_b + input_cin;
-        uint16_t temp_adc = static_cast<uint16_t>(input_a) + input_b + input_cin;
-        uint8_t expected_adc_cout = (temp_adc >> 8) & 1;
-        top->opcode = Valu_alu_defs::ALU_ADC;
-        top->eval();
-        log_mismatch_carry(errors, Valu_alu_defs::ALU_ADC, input_a, input_b, input_cin, expected_adc, top->result,
-                           expected_adc_cout, top->cout_flag);
-
-        // SUB
-        uint8_t expected_sub = input_a - input_b;
-        uint8_t expected_sub_cout = (input_a < input_b);
-        top->opcode = Valu_alu_defs::ALU_SUB;
-        top->eval();
-        log_mismatch_carry(errors, Valu_alu_defs::ALU_SUB, input_a, input_b, input_cin, expected_sub, top->result,
-                           expected_sub_cout, top->cout_flag);
-
-        // SBC
-        uint8_t expected_sbc = input_a - input_b - input_cin;
-        uint8_t expected_sbc_cout =
-            ((static_cast<uint16_t>(input_a) - static_cast<uint16_t>(input_b) - input_cin) >> 8) & 1;
-        top->opcode = Valu_alu_defs::ALU_SBC;
-        top->eval();
-        log_mismatch_carry(errors, Valu_alu_defs::ALU_SBC, input_a, input_b, input_cin, expected_sbc, top->result,
-                           expected_sbc_cout, top->cout_flag);
+            log_mismatch(*top, correct, errors, aluop, input_a, input_b);
+        }
     }
 
-    // edge case testing tbd
+    // edge case testing boundry values
+
+    // min(-128)=0x80, max(127)=0x7F
+    std::vector<uint8_t> edge_a = {0, 1, 0xFF, 0x80, 0x7F};
+    std::vector<uint8_t> edge_b = {0, 1, 0xFF, 0x80, 0x7F};
+
+    for (auto input_a : edge_a) {
+        for (auto input_b : edge_b) {
+            for (auto input_cin : {0, 1}) {
+                top->a = input_a;
+                top->b = input_b;
+                top->cin_flag = input_cin;
+
+                // test every operation for the boundry values.
+                for (auto aluop : magic_enum::enum_values<Valu_alu_defs::alu_op_t>()) {
+                    // get the correct model ALU results to compare to.
+                    ModelALUResult correct = model_alu(aluop, input_a, input_b, input_cin);
+
+                    // run the sim to get the simulated results
+                    top->opcode = aluop;
+                    top->eval();
+
+                    log_mismatch(*top, correct, errors, aluop, input_a, input_b);
+                }
+            }
+        }
+    }
 
     if (!errors.empty()) {
         std::println(stderr, "Hardware Verification FAILED with {} errors:", errors.size());
         // print only the first 20 errors to not flood if things go terrible
+        std::println("Printing the first 20 errors:");
         for (size_t i = 0; i < std::min<size_t>(errors.size(), 20); i++) {
             std::println(stderr, "  {}", errors[i]);
         }
