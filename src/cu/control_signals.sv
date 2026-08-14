@@ -1,8 +1,15 @@
 `ifndef CONTROL_SIGNALS_SV
 `define CONTROL_SIGNALS_SV
 
-package control_signals;
+`include "alu_defs.sv"
 
+package control_signals;
+  import alu_defs::*;
+
+
+  // TODO: refactor the GPR0/1/2/3 into GPRA/GPRB , let datapath do the decoding
+  // this way its cleaner when the FSM is outputting the signals - datapath can just take register address directly
+  // from the ir_out ( can also make the bus_dst_t thus one bit smaller)
   typedef enum logic [2:0] {
     BUS_SRC_NONE = 3'd0,  // high z (no verilator support, so 0x00 is emulated high z)
     BUS_SRC_GPR0 = 3'd1,
@@ -35,7 +42,7 @@ package control_signals;
     bus_dst_t dst_sel;
 
     // alu
-    logic [3:0] aluop;
+    alu_op_t aluop;
     logic alutmp_zero;  // 2:1 mux control for alu B input (0: TMP d_out / 1: hardwired 8'b0)
     logic flgs_overwrite; // 2:1 mux control for carry flag overwrite (0: alu input / 1: accept ow_value if c_we)
     logic flgs_ow_value;  // value to overwrite with (must be paired with c_we & overwrite = 1) 
