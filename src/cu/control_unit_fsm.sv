@@ -43,7 +43,7 @@ module control_unit_fsm
     if (!rst_n) begin
       // TODO: error state eventually cleans everything and restarts (ram/pc reset)
       // for now, error state just bricks the cpu
-      state <= S_ERROR;
+      state <= S_FETCH_IR;
     end else begin
       state <= next_state;
     end
@@ -58,6 +58,7 @@ module control_unit_fsm
       S_FETCH_IR: next_state = S_FETCH_INPC;
 
       // DECODING (baked into the end of fetch cycle)
+      // default move to error state (not implemented yet)
       S_FETCH_INPC: begin
         case (instr_fmt)
 
@@ -72,14 +73,14 @@ module control_unit_fsm
 
           FMT_SINGLE: begin
             case (instr.single.opcode)
-              // TODO
+              OP_RNG:  next_state = S_EXEC_1CYCLE;
               default: next_state = S_ERROR;
             endcase
           end
 
           FMT_DUAL: begin
             case (instr.dual.opcode)
-              // TODO
+              OP_MOV:  next_state = S_EXEC_1CYCLE;
               default: next_state = S_ERROR;
             endcase
           end
@@ -113,22 +114,54 @@ module control_unit_fsm
       end
 
       // single cycle instructions
+      // OP_RST, OP_CLC, OP_SEC, OP_RNG, OP_MOV
       S_EXEC_1CYCLE: begin
-        case (instr.none.opcode)
-          OP_RST:  ctrl.pc_rst = 1'b1;
-          OP_CLC: begin
-            ctrl.flgs_overwrite = 1'b1;
-            ctrl.flgs_ow_value = 1'b0;
-            ctrl.flgs_c_we = 1'b1;
+        case (instr_fmt)
+          FMT_NONE: begin
+            case (instr.none.opcode)
+              OP_RST:  ctrl.pc_rst = 1'b1;
+              OP_CLC: begin
+                ctrl.flgs_overwrite = 1'b1;
+                ctrl.flgs_ow_value = 1'b0;
+                ctrl.flgs_c_we = 1'b1;
+              end
+              OP_SEC: begin
+                ctrl.flgs_overwrite = 1'b1;
+                ctrl.flgs_ow_value = 1'b1;
+                ctrl.flgs_c_we = 1'b1;
+              end
+              default: ;
+            endcase
           end
-          OP_SEC: begin
-            ctrl.flgs_overwrite = 1'b1;
-            ctrl.flgs_ow_value = 1'b1;
-            ctrl.flgs_c_we = 1'b1;
+
+          FMT_DUAL: begin
+            case (instr.dual.opcode)
+              // single cycle move (copy)
+              OP_MOV: begin
+                ctrl.dst_sel = BUS_DST_REG_A;
+                ctrl.src_sel = BUS_SRC_REG_B;
+              end
+              default: ;
+            endcase
           end
+
+          FMT_SINGLE: begin
+            case (instr.single.opcode)
+              // single cycle rng value latch
+              OP_RNG: begin
+                ctrl.dst_sel = BUS_DST_REG_B;
+                ctrl.src_sel = BUS_SRC_LFSR;
+              end
+              default: ;
+            endcase
+          end
+
           default: ;  // empty; zeroed at top
         endcase
       end
+
+
+
 
       default: ;  // empty; zeroed at top
     endcase

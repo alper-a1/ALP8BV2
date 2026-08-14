@@ -10,7 +10,7 @@ module cpu_datapath
 
     output logic zero_flag,
     output logic carry_flag,
-    output logic [7:0] ir  // IR output (opcode)
+    output logic [7:0] ir_out  // IR output (opcode)
 
 );
   // internal wiring
@@ -56,16 +56,41 @@ module cpu_datapath
   // main bus mux
   always_comb begin
     case (ctrl.src_sel)
-      BUS_SRC_GPR0: main_bus = gpr0_out;
-      BUS_SRC_GPR1: main_bus = gpr1_out;
-      BUS_SRC_GPR2: main_bus = gpr2_out;
-      BUS_SRC_GPR3: main_bus = gpr3_out;
+      BUS_SRC_REG_A: main_bus = reg_a_val;
+      BUS_SRC_REG_B: main_bus = reg_b_val;
       BUS_SRC_RAM: main_bus = ram_out;
       BUS_SRC_ALU: main_bus = alures_out;
       BUS_SRC_LFSR: main_bus = lfsr_out;
       default: main_bus = 8'b0;  // same as BUS_SRC_NONE; verilator high-z workaround
     endcase
+  end
 
+  // register file decoding:
+  logic [1:0] reg_a_addr = ir_out[3:2];
+  logic [1:0] reg_b_addr = ir_out[1:0];
+
+  logic [7:0] reg_a_val;
+  logic [7:0] reg_b_val;
+
+  // reg a/b to gpr# mappping
+  always_comb begin
+    // defaults
+    reg_a_val = 8'b0;
+    reg_b_val = 8'b0;
+
+    case (reg_a_addr)
+      2'b00: reg_a_val = gpr0_out;
+      2'b01: reg_a_val = gpr1_out;
+      2'b10: reg_a_val = gpr2_out;
+      2'b11: reg_a_val = gpr3_out;
+    endcase
+
+    case (reg_b_addr)
+      2'b00: reg_b_val = gpr0_out;
+      2'b01: reg_b_val = gpr1_out;
+      2'b10: reg_b_val = gpr2_out;
+      2'b11: reg_b_val = gpr3_out;
+    endcase
   end
 
   // addr bus mux
@@ -78,17 +103,44 @@ module cpu_datapath
   assign flags_carry_input = ctrl.flgs_overwrite ? ctrl.flgs_ow_value : alu_carry_out;
 
   // destination decoding:
-  assign gpr0_we = (ctrl.dst_sel == BUS_DST_GPR0);
-  assign gpr1_we = (ctrl.dst_sel == BUS_DST_GPR1);
-  assign gpr2_we = (ctrl.dst_sel == BUS_DST_GPR2);
-  assign gpr3_we = (ctrl.dst_sel == BUS_DST_GPR3);
-
   assign ram_we = (ctrl.dst_sel == BUS_DST_RAM);
   assign alutmp_we = (ctrl.dst_sel == BUS_DST_ALUTMP);
   assign pc_we = (ctrl.dst_sel == BUS_DST_PC);
   assign ir_we = (ctrl.dst_sel == BUS_DST_IR);
   assign mar_we = (ctrl.dst_sel == BUS_DST_MAR);
 
+  // WE routing from rega/b to gpr#
+  always_comb begin
+    // by default dont ever enable
+    gpr0_we = 1'b0;
+    gpr1_we = 1'b0;
+    gpr2_we = 1'b0;
+    gpr3_we = 1'b0;
+
+    case (ctrl.dst_sel)
+      BUS_DST_REG_A: begin
+        // if destination is A decode reg A's address
+        case (reg_a_addr)
+          2'b00: gpr0_we = 1'b1;
+          2'b01: gpr1_we = 1'b1;
+          2'b10: gpr2_we = 1'b1;
+          2'b11: gpr3_we = 1'b1;
+        endcase
+      end
+
+      BUS_DST_REG_B: begin
+        // if destination is B decode reg B's address
+        case (reg_b_addr)
+          2'b00: gpr0_we = 1'b1;
+          2'b01: gpr1_we = 1'b1;
+          2'b10: gpr2_we = 1'b1;
+          2'b11: gpr3_we = 1'b1;
+        endcase
+      end
+
+      default: ;  // no action, already defaulted.
+    endcase
+  end
 
   // components
   // ----------
@@ -124,7 +176,7 @@ module cpu_datapath
   reg8 u_ir (
       .clk(clk),
       .d_in(main_bus),
-      .d_out(ir),
+      .d_out(ir_out),
       .we(ir_we)
   );
 
