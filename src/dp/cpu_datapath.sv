@@ -10,7 +10,7 @@ module cpu_datapath
 
     output logic zero_flag,
     output logic carry_flag,
-    output logic [7:0] opcode  // IR output
+    output logic [7:0] ir  // IR output (opcode)
 
 );
   // internal wiring
@@ -22,6 +22,7 @@ module cpu_datapath
 
   // input of alu b
   logic [7:0] alu_bin;
+  logic flags_carry_input;
 
   // component outputs
   // -----------------
@@ -73,6 +74,8 @@ module cpu_datapath
   // alu b mux 
   assign alu_bin = ctrl.alutmp_zero ? 8'b0 : alutmp_out;
 
+  // carry flag write source bus (either ALU or hard fix from ctrl)
+  assign flags_carry_input = ctrl.flgs_overwrite ? ctrl.flgs_ow_value : alu_carry_out;
 
   // destination decoding:
   assign gpr0_we = (ctrl.dst_sel == BUS_DST_GPR0);
@@ -118,10 +121,10 @@ module cpu_datapath
       .we(gpr3_we)
   );
 
-  reg8 ir (
+  reg8 u_ir (
       .clk(clk),
       .d_in(main_bus),
-      .d_out(opcode),
+      .d_out(ir),
       .we(ir_we)
   );
 
@@ -177,7 +180,7 @@ module cpu_datapath
       .z_in (alu_zero_out),
       .z_we (ctrl.flgs_z_we),
       .c_out(carry_flag),
-      .c_in (alu_carry_out),
+      .c_in (flags_carry_input),
       .c_we (ctrl.flgs_c_we)
   );
 
