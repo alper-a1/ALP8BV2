@@ -1,4 +1,4 @@
-`include "../cu/control_signals.sv"
+`include "control_signals.sv"
 
 module cpu_datapath
   import control_signals::*;

@@ -16,7 +16,7 @@ module pc (
   // public for testing & sim visualisation
   logic [7:0] val  /*verilator public*/;
 
-  always_ff @(posedge clk or negedge rst_n) begin
+  always_ff @(posedge clk) begin
     if (!rst_n) begin
       val <= 8'b0;
     end else if (sw_rst) begin

@@ -1,7 +1,7 @@
 `include "control_signals.sv"
 `include "instruction_types.sv"
 `include "fsm_states.sv"
-`include "../dp/alu/alu_defs.sv"
+`include "alu_defs.sv"
 
 module control_unit_fsm
   import control_signals::*;
@@ -16,7 +16,7 @@ module control_unit_fsm
     input logic zero_flag,
     input logic carry_flag,
 
-    input instruction_t instr,
+    input instruction_t instr,  // (gets cast from the raw output of the instruction register)
     output control_signals_t ctrl
 );
 

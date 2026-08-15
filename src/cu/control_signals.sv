@@ -1,7 +1,7 @@
 `ifndef CONTROL_SIGNALS_SV
 `define CONTROL_SIGNALS_SV
 
-`include "../dp/alu/alu_defs.sv"
+`include "alu_defs.sv"
 
 package control_signals;
   import alu_defs::*;

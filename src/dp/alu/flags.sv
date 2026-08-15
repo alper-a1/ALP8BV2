@@ -20,7 +20,7 @@ module flags (
   logic zero_flag  /*verilator public*/;
   logic carry_flag  /*verilator public*/;
 
-  always_ff @(posedge clk or negedge rst_n) begin
+  always_ff @(posedge clk) begin
 
     if (!rst_n) begin
       carry_flag <= 1'b0;
