@@ -24,7 +24,7 @@ package instruction_types;
   } op_no_reg_t;
 
   typedef enum logic [5:0] {
-    OP_SHL  = 6'b0000_01,
+    OP_ROR  = 6'b0000_01,
     OP_SHR  = 6'b0000_10,
     OP_NOT  = 6'b0000_11,
     OP_INC  = 6'b0001_00,

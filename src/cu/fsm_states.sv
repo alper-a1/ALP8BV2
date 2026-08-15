@@ -8,7 +8,7 @@ package fsm_states;
     S_FETCH_IR,  // entry point
     S_FETCH_INPC,
 
-    S_EXEC_1CYCLE,
+    S_EXEC_1CYCLE,  // instructions that exec in one clock cycle 
 
     S_EXEC_2R_MATH_TMP,  // two reg math write to alutmp
     S_EXEC_2R_MATH_RES,  // two reg math latch alu result

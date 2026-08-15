@@ -46,9 +46,9 @@ ModelALUResult model_alu(Valu_alu_defs::alu_op_t op, uint8_t a, uint8_t b, uint8
         out.cout_flag = 0;
         break;
     }
-    case Valu_alu_defs::alu_op_t::ALU_SHL: {
-        out.result = a << 1;
-        out.cout_flag = (a & 0b1000'0000) >> 7;
+    case Valu_alu_defs::alu_op_t::ALU_ROR: {
+        out.result = (a >> 1) | (a << 7);
+        out.cout_flag = a & 0b1;
         break;
     }
     case Valu_alu_defs::alu_op_t::ALU_SHR: {

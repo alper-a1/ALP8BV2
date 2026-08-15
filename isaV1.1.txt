@@ -11,7 +11,7 @@ ENCODING        MNEMONIC    OPERANDS        OPERATION                   FLAGS(C)
 0000 0010       CLC         None            C <- 0                      0          1           /
 0000 0011       SEC         None            C <- 1                      1          1           /
 
-0000 01RB       SHL         RB              RB <- RB << 1               *          1           /
+0000 01RB       ROR         RB              RB <- RB[0] || RB[7:1]      *          1           /
 0000 10RB       SHR         RB              RB <- RB >> 1               *          1           /
 0000 11RB       NOT         RB              RB <- ~RB                   -          1           /
 0001 00RB       INC         RB              RB <- RB + 1                -          1           /
@@ -22,7 +22,10 @@ ENCODING        MNEMONIC    OPERANDS        OPERATION                   FLAGS(C)
 0010 RARB       SUB         RA, RB          RA <- RA - RB               *          1           /
 0011 RARB       SBC         RA, RB, C       RA <- RA - RB - C           *          1           /
 
-0100 00XX       JMP         Imm8            PC <- Imm8                  -          2           AAAA AAAA
+0100 0000       JMP         Imm8            PC <- Imm8                  -          2           AAAA AAAA
+0100 0001       JC          Imm8            If C == 1: PC <- Imm8       -          2           AAAA AAAA
+0100 0010       JNC         Imm8            If C == 0: PC <- Imm8       -          2           AAAA AAAA
+0100 0011       [UNUSED]
 0100 01RB       JMPR        RB              PC <- RB                    -          1           /
 0100 10RB       CBZ         RB, Imm8        If RB ==  0: PC <- Imm8     -          2           AAAA AAAA     
 0100 11RB       CBNZ        RB, Imm8        If RB !=  0: PC <- Imm8     -          2           AAAA AAAA     
@@ -39,3 +42,15 @@ ENCODING        MNEMONIC    OPERANDS        OPERATION                   FLAGS(C)
 1101 RARB       LDM         RA, RB          RA <- MEM[RB]               -          1           /
 1110 RARB       STM         RA, RB          MEM[RB] <- RA               -          1           /
 1111 RARB       MOV         RA, RB          RA <- RB                    -          1           /
+
+pseudo instructions:
+
+MNEMONIC        MAPPING
+CLR RA          XOR RA RA
+CBGT RA RB      CBLT RB RA
+SHL RA          ADD RA RA            
+
+
+pseudo mock halt (busyloop)
+
+HALT            __halt: JMP __halt

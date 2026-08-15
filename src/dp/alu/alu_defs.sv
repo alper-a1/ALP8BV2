@@ -13,7 +13,7 @@ package alu_defs;
     ALU_OR  = 4'b0101,
     ALU_AND = 4'b0110,
     ALU_XOR = 4'b0111,
-    ALU_SHL = 4'b1000,
+    ALU_ROR = 4'b1000,
     ALU_SHR = 4'b1001,
     ALU_NOT = 4'b1010,
     ALU_INC = 4'b1011,

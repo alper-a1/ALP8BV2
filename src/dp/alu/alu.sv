@@ -32,9 +32,10 @@ module alu
 
       ALU_XOR: result = a ^ b;
 
-      ALU_SHL: begin
-        result = a << 8'd1;
-        cout_flag = a[7];
+      ALU_ROR: begin
+        // ror does not consume carry
+        result = {a[0], a[7:1]};
+        cout_flag = a[0];
       end
 
       ALU_SHR: begin

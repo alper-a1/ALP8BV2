@@ -1,0 +1,17 @@
+idea for the program files that the simulator takes.
+
+both the program code hex (256b) and the rest of the program data is in a single file (once compiled)
+
+
+file format:
+
+
+.name 
+[NAME]
+
+.clockhz
+[CLOCKSPEED]
+
+.program
+[16x16 hex grid]
+

@@ -76,7 +76,7 @@ module control_unit_fsm
           FMT_SINGLE: begin
             case (instr.single.opcode)
               // 1reg alu math instructions goto the 2cycle starting at res latch 
-              OP_SHL, OP_SHR, OP_NOT, OP_INC, OP_DEC: next_state = S_EXEC_1R_MATH_RES;
+              OP_ROR, OP_SHR, OP_NOT, OP_INC, OP_DEC: next_state = S_EXEC_1R_MATH_RES;
 
               // ldi / rng / jmpr / cbz+cbnz all follow different paths
               OP_RNG:  next_state = S_EXEC_1CYCLE;
@@ -150,11 +150,12 @@ module control_unit_fsm
 
       // single cycle instructions
       // OP_RST, OP_CLC, OP_SEC, OP_RNG, OP_MOV
+      // OP_JMP, OP_JMPR, OP_JC, OP_JNC
       S_EXEC_1CYCLE: begin
         case (instr_fmt)
           FMT_NONE: begin
             case (instr.none.opcode)
-              OP_RST:  ctrl.pc_rst = 1'b1;
+              OP_RST: ctrl.pc_rst = 1'b1;
               OP_CLC: begin
                 ctrl.flgs_overwrite = 1'b1;
                 ctrl.flgs_ow_value = 1'b0;
@@ -165,6 +166,27 @@ module control_unit_fsm
                 ctrl.flgs_ow_value = 1'b1;
                 ctrl.flgs_c_we = 1'b1;
               end
+              OP_JMP: begin
+                ctrl.src_sel = BUS_SRC_RAM;
+                ctrl.dst_sel = BUS_DST_PC;
+              end
+              OP_JC: begin
+                if (carry_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+              OP_JNC: begin
+                if (!carry_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+
               default: ;
             endcase
           end
@@ -186,6 +208,10 @@ module control_unit_fsm
               OP_RNG: begin
                 ctrl.dst_sel = BUS_DST_REG_B;
                 ctrl.src_sel = BUS_SRC_LFSR;
+              end
+              OP_JMPR: begin
+                ctrl.src_sel = BUS_SRC_REG_B;
+                ctrl.dst_sel = BUS_DST_PC;
               end
               default: ;
             endcase
@@ -253,8 +279,8 @@ module control_unit_fsm
 
             // aluop and flags setting
             case (instr.single.opcode)
-              OP_SHL: begin
-                ctrl.aluop = ALU_SHL;
+              OP_ROR: begin
+                ctrl.aluop = ALU_ROR;
                 ctrl.flgs_c_we = 1'b1;
               end
               OP_SHR: begin
