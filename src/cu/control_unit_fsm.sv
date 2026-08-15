@@ -61,6 +61,7 @@ module control_unit_fsm
 
       // DECODING (baked into the end of fetch cycle)
       // default move to error state (not implemented yet)
+      // 8 unique paths for the FSM from here until reset (fetch ir)
       S_FETCH_INPC: begin
         case (instr_fmt)
 
@@ -98,8 +99,12 @@ module control_unit_fsm
               OP_ADD, OP_ADC, OP_SUB, OP_SBC, OP_AND, OP_XOR, OP_OR:
               next_state = S_EXEC_2R_MATH_TMP;
 
-              OP_LDM:  next_state = S_EXEC_MAR_RB_L;
-              OP_STM:  next_state = S_EXEC_MAR_RB_S;
+              OP_LDM: next_state = S_EXEC_MAR_RB_L;
+              OP_STM: next_state = S_EXEC_MAR_RB_S;
+
+              // branching instrs
+              OP_CBEQ, OP_CBNE, OP_CBLT: next_state = S_EXEC_2R_CB_TMP;
+
               default: next_state = S_ERROR;
             endcase
           end
@@ -144,7 +149,13 @@ module control_unit_fsm
       S_EXEC_1R_CB_C1: next_state = S_EXEC_1R_CB_C2;
       S_EXEC_1R_CB_C2: next_state = S_FETCH_IR;
 
-      default: next_state = S_ERROR;
+      // compare and branch 2 operand
+      // S_EXEC_2R_CB_TMP -> S_EXEC_2R_CB_RES -> S_EXEC_2R_CB_BRC -> reset
+      S_EXEC_2R_CB_TMP: next_state = S_EXEC_2R_CB_RES;
+      S_EXEC_2R_CB_RES: next_state = S_EXEC_2R_CB_BRC;
+      S_EXEC_2R_CB_BRC: next_state = S_FETCH_IR;
+
+      default: next_state = S_ERROR;  // TODO
     endcase
   end
 
@@ -380,6 +391,58 @@ module control_unit_fsm
               end
               OP_CBNZ: begin
                 if (!zero_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+              default: ;
+            endcase
+          end
+          default: ;
+        endcase
+      end
+
+      S_EXEC_2R_CB_TMP: begin
+        // throw reg b into tmp (for a - b)
+        ctrl.dst_sel = BUS_DST_ALUTMP;
+        ctrl.src_sel = BUS_SRC_REG_B;
+      end
+
+      S_EXEC_2R_CB_RES: begin
+        // perform reg a - reg b (from previous step), latch flags
+        ctrl.src_sel = BUS_SRC_REG_A;
+        ctrl.flgs_z_we = 1'b1;
+        ctrl.flgs_c_we = 1'b1;
+        ctrl.aluop = ALU_SUB;
+      end
+
+      S_EXEC_2R_CB_BRC: begin
+        // all the flags are set, just branch based on the flag
+        case (instr_fmt)
+          FMT_DUAL: begin
+            case (instr.dual.opcode)
+              OP_CBEQ: begin
+                if (zero_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+              OP_CBNE: begin
+                if (!zero_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+              OP_CBLT: begin
+                // A - B , yields carry = 1 if A < B (borrow occured)
+                // must also have no zero flag (since otherwise theyre equal)
+                if (carry_flag && !zero_flag) begin
                   ctrl.src_sel = BUS_SRC_RAM;
                   ctrl.dst_sel = BUS_DST_PC;
                 end else begin

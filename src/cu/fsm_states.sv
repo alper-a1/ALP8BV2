@@ -25,8 +25,12 @@ package fsm_states;
     S_EXEC_LDI_LM,  // LDI load imm8 from mem
     S_EXEC_LDI_IP,  // LDI inc pc past imm8 and onto next instruction
 
-    S_EXEC_1R_CB_C1,  // single reg compare to zero type cycle 1
-    S_EXEC_1R_CB_C2   // single reg compare to zero type cycle 2
+    S_EXEC_1R_CB_C1,  // 1reg compare to zero get flags from operand
+    S_EXEC_1R_CB_C2,  // 1reg compare to zero take branch if conditon
+
+    S_EXEC_2R_CB_TMP,  // 2reg compare and branch latch tmp
+    S_EXEC_2R_CB_RES,  // 2reg compare and branch get flag results
+    S_EXEC_2R_CB_BRC   // 2reg compare and branch take branch if condition
 
   } state_t;
 
