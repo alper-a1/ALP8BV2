@@ -75,7 +75,7 @@ module control_unit_fsm
 
           FMT_SINGLE: begin
             case (instr.single.opcode)
-              // 1reg alu math instructions goto the 2cycle starting at res latch 
+              // 1reg alu math instructions goto the 2cycle starting at res latch
               OP_ROR, OP_SHR, OP_NOT, OP_INC, OP_DEC: next_state = S_EXEC_1R_MATH_RES;
 
               // ldi / rng / jmpr / cbz+cbnz all follow different paths
@@ -88,7 +88,7 @@ module control_unit_fsm
           FMT_DUAL: begin
             case (instr.dual.opcode)
               OP_MOV: next_state = S_EXEC_1CYCLE;
-              // 2reg alu math instructions goto the 3cycle starting at alutmp latch 
+              // 2reg alu math instructions goto the 3cycle starting at alutmp latch
               OP_ADD, OP_ADC, OP_SUB, OP_SBC, OP_AND, OP_XOR, OP_OR:
               next_state = S_EXEC_2R_MATH_TMP;
 
@@ -117,7 +117,7 @@ module control_unit_fsm
       S_EXEC_1R_MATH_RES: next_state = S_EXEC_1R_MATH_WB;
       S_EXEC_1R_MATH_WB:  next_state = S_FETCH_IR;
 
-      // load from memory 
+      // load from memory
       S_EXEC_MAR_RB_L: next_state = S_EXEC_RD_RAM;
       S_EXEC_RD_RAM:   next_state = S_FETCH_IR;
       // store to memory
@@ -142,7 +142,7 @@ module control_unit_fsm
       S_FETCH_IR: begin
         ctrl.src_sel = BUS_SRC_RAM;
         ctrl.dst_sel = BUS_DST_IR;
-        // addr bus mux already defaulted to PC 
+        // addr bus mux already defaulted to PC
       end
       S_FETCH_INPC: begin
         ctrl.pc_inc = 1'b1;
@@ -240,7 +240,7 @@ module control_unit_fsm
             case (instr.dual.opcode)
               OP_ADD: begin
                 ctrl.aluop = ALU_ADD;
-                ctrl.flgs_c_we = 1'b1;  // ADD updates carry (but does not consume)  
+                ctrl.flgs_c_we = 1'b1;  // ADD updates carry (but does not consume)
               end
               OP_ADC: begin
                 ctrl.aluop = ALU_ADC;
@@ -248,7 +248,7 @@ module control_unit_fsm
               end
               OP_SUB: begin
                 ctrl.aluop = ALU_SUB;
-                ctrl.flgs_c_we = 1'b1;  // SUB updates carry (but does not consume)  
+                ctrl.flgs_c_we = 1'b1;  // SUB updates carry (but does not consume)
               end
               OP_SBC: begin
                 ctrl.aluop = ALU_SBC;

@@ -79,24 +79,26 @@ module cpu_datapath
     reg_b_val = 8'b0;
 
     case (reg_a_addr)
-      2'b00: reg_a_val = gpr0_out;
-      2'b01: reg_a_val = gpr1_out;
-      2'b10: reg_a_val = gpr2_out;
-      2'b11: reg_a_val = gpr3_out;
+      2'b00:   reg_a_val = gpr0_out;
+      2'b01:   reg_a_val = gpr1_out;
+      2'b10:   reg_a_val = gpr2_out;
+      2'b11:   reg_a_val = gpr3_out;
+      default: ;
     endcase
 
     case (reg_b_addr)
-      2'b00: reg_b_val = gpr0_out;
-      2'b01: reg_b_val = gpr1_out;
-      2'b10: reg_b_val = gpr2_out;
-      2'b11: reg_b_val = gpr3_out;
+      2'b00:   reg_b_val = gpr0_out;
+      2'b01:   reg_b_val = gpr1_out;
+      2'b10:   reg_b_val = gpr2_out;
+      2'b11:   reg_b_val = gpr3_out;
+      default: ;
     endcase
   end
 
   // addr bus mux
   assign addr_bus = ctrl.addr_sel ? mar_out : pc_out;
 
-  // alu b mux 
+  // alu b mux
   assign alu_bin = ctrl.alutmp_zero ? 8'b0 : alutmp_out;
 
   // carry flag write source bus (either ALU or hard fix from ctrl)
@@ -122,20 +124,22 @@ module cpu_datapath
       BUS_DST_REG_A: begin
         // if destination is A decode reg A's address
         case (reg_a_addr)
-          2'b00: gpr0_we = 1'b1;
-          2'b01: gpr1_we = 1'b1;
-          2'b10: gpr2_we = 1'b1;
-          2'b11: gpr3_we = 1'b1;
+          2'b00:   gpr0_we = 1'b1;
+          2'b01:   gpr1_we = 1'b1;
+          2'b10:   gpr2_we = 1'b1;
+          2'b11:   gpr3_we = 1'b1;
+          default: ;
         endcase
       end
 
       BUS_DST_REG_B: begin
         // if destination is B decode reg B's address
         case (reg_b_addr)
-          2'b00: gpr0_we = 1'b1;
-          2'b01: gpr1_we = 1'b1;
-          2'b10: gpr2_we = 1'b1;
-          2'b11: gpr3_we = 1'b1;
+          2'b00:   gpr0_we = 1'b1;
+          2'b01:   gpr1_we = 1'b1;
+          2'b10:   gpr2_we = 1'b1;
+          2'b11:   gpr3_we = 1'b1;
+          default: ;
         endcase
       end
 

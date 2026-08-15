@@ -39,7 +39,7 @@ package control_signals;
     alu_op_t aluop;
     logic alutmp_zero;  // 2:1 mux control for alu B input (0: TMP d_out / 1: hardwired 8'b0)
     logic flgs_overwrite; // 2:1 mux control for carry flag overwrite (0: alu input / 1: accept ow_value if c_we)
-    logic flgs_ow_value;  // value to overwrite with (must be paired with c_we & overwrite = 1) 
+    logic flgs_ow_value;  // value to overwrite with (must be paired with c_we & overwrite = 1)
     logic flgs_c_we;
     logic flgs_z_we;
 

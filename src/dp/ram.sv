@@ -9,9 +9,9 @@ module ram (
     output logic [7:0] d_out
 );
 
-  // internal memory; public so c++ accessible 
+  // internal memory; public so c++ accessible
   // required such that programs can be loaded via c++
-  logic [7:0] mem[255:0]  /*verilator public*/;
+  logic [7:0] mem[256]  /*verilator public*/;
 
   always_ff @(posedge clk) begin
     if (we) begin
