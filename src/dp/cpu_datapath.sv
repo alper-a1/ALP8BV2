@@ -46,7 +46,7 @@ module cpu_datapath
   logic gpr0_we, gpr1_we, gpr2_we, gpr3_we;
 
   // alu
-  logic alutmp_we;
+  logic alutmp_we, alures_we;
 
   // other
   logic mar_we, ram_we, pc_we, ir_we;
@@ -59,7 +59,7 @@ module cpu_datapath
       BUS_SRC_REG_A: main_bus = reg_a_val;
       BUS_SRC_REG_B: main_bus = reg_b_val;
       BUS_SRC_RAM: main_bus = ram_out;
-      BUS_SRC_ALU: main_bus = alures_out;
+      BUS_SRC_ALURES: main_bus = alures_out;
       BUS_SRC_LFSR: main_bus = lfsr_out;
       default: main_bus = 8'b0;  // same as BUS_SRC_NONE; verilator high-z workaround
     endcase
@@ -105,6 +105,7 @@ module cpu_datapath
   // destination decoding:
   assign ram_we = (ctrl.dst_sel == BUS_DST_RAM);
   assign alutmp_we = (ctrl.dst_sel == BUS_DST_ALUTMP);
+  assign alures_we = (ctrl.dst_sel == BUS_DST_ALURES);
   assign pc_we = (ctrl.dst_sel == BUS_DST_PC);
   assign ir_we = (ctrl.dst_sel == BUS_DST_IR);
   assign mar_we = (ctrl.dst_sel == BUS_DST_MAR);
@@ -198,7 +199,7 @@ module cpu_datapath
       .clk(clk),
       .d_in(alu_out),
       .d_out(alures_out),
-      .we(1'b1)  // fixed; alures always consumes alu output
+      .we(alures_we)
   );
 
   lfsr_rng lfsr (

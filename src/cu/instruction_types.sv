@@ -18,7 +18,9 @@ package instruction_types;
     OP_RST = 8'b0000_0001,
     OP_CLC = 8'b0000_0010,
     OP_SEC = 8'b0000_0011,
-    OP_JMP = 8'b0100_0000
+    OP_JMP = 8'b0100_0000,
+    OP_JC  = 8'b0100_0001,
+    OP_JNC = 8'b0100_0010
   } op_no_reg_t;
 
   typedef enum logic [5:0] {

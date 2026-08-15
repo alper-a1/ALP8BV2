@@ -8,11 +8,11 @@ package control_signals;
 
 
   typedef enum logic [2:0] {
-    BUS_SRC_NONE,   // high z (no verilator support, so 0x00 is emulated high z)
+    BUS_SRC_NONE,    // high z (no verilator support, so 0x00 is emulated high z)
     BUS_SRC_REG_A,
     BUS_SRC_REG_B,
     BUS_SRC_RAM,
-    BUS_SRC_ALU,
+    BUS_SRC_ALURES,
     BUS_SRC_LFSR
   } bus_src_t;
 
@@ -22,6 +22,7 @@ package control_signals;
     BUS_DST_REG_B,
     BUS_DST_RAM,
     BUS_DST_ALUTMP,
+    BUS_DST_ALURES,
     BUS_DST_PC,
     BUS_DST_IR,
     BUS_DST_MAR
