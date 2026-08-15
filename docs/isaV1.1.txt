@@ -52,5 +52,5 @@ SHL RA          ADD RA RA
 
 
 pseudo mock halt (busyloop)
-
+label requires to be unique so perhaps this generates with a random number prefix?
 HALT            __halt: JMP __halt
