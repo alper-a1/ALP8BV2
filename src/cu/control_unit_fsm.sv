@@ -67,8 +67,7 @@ module control_unit_fsm
           FMT_NONE: begin
             case (instr.none.opcode)
               OP_NOP: next_state = S_FETCH_IR;
-              OP_RST, OP_CLC, OP_SEC: next_state = S_EXEC_1CYCLE;
-              // TODO: JMP
+              OP_RST, OP_CLC, OP_SEC, OP_JMP, OP_JC, OP_JNC: next_state = S_EXEC_1CYCLE;
               default: next_state = S_ERROR;
             endcase
           end
@@ -79,8 +78,15 @@ module control_unit_fsm
               OP_ROR, OP_SHR, OP_NOT, OP_INC, OP_DEC: next_state = S_EXEC_1R_MATH_RES;
 
               // ldi / rng / jmpr / cbz+cbnz all follow different paths
-              OP_RNG:  next_state = S_EXEC_1CYCLE;
-              OP_LDI:  next_state = S_EXEC_LDI_LM;
+              OP_RNG: next_state = S_EXEC_1CYCLE;
+              OP_LDI: next_state = S_EXEC_LDI_LM;
+
+              // single reg compare & branch
+              OP_CBZ, OP_CBNZ: next_state = S_EXEC_1R_CB_C1;
+
+              // register jmp
+              OP_JMPR: next_state = S_EXEC_1CYCLE;
+
               default: next_state = S_ERROR;
             endcase
           end
@@ -104,6 +110,7 @@ module control_unit_fsm
 
       // EXECUTE STAGE:
       // --------------
+      // S_EXEC_1CYCLE -> reset
       S_EXEC_1CYCLE: next_state = S_FETCH_IR;
 
       // 2reg alu math (3cycle)
@@ -118,15 +125,24 @@ module control_unit_fsm
       S_EXEC_1R_MATH_WB:  next_state = S_FETCH_IR;
 
       // load from memory
+      // S_EXEC_MAR_RB_L -> S_EXEC_RD_RAM -> reset
       S_EXEC_MAR_RB_L: next_state = S_EXEC_RD_RAM;
       S_EXEC_RD_RAM:   next_state = S_FETCH_IR;
+
       // store to memory
+      // S_EXEC_MAR_RB_S -> S_EXEC_WR_RAM -> reset;
       S_EXEC_MAR_RB_S: next_state = S_EXEC_WR_RAM;
       S_EXEC_WR_RAM:   next_state = S_FETCH_IR;
 
       // ldi
+      // S_EXEC_LDI_LM -> S_EXEC_LDI_IP -> reset
       S_EXEC_LDI_LM: next_state = S_EXEC_LDI_IP;
       S_EXEC_LDI_IP: next_state = S_FETCH_IR;
+
+      // compare to zero (CBZ, CBNZ)
+      // S_EXEC_1R_CB_C1 -> S_EXEC_1R_CB_C2 -> reset
+      S_EXEC_1R_CB_C1: next_state = S_EXEC_1R_CB_C2;
+      S_EXEC_1R_CB_C2: next_state = S_FETCH_IR;
 
       default: next_state = S_ERROR;
     endcase
@@ -338,6 +354,44 @@ module control_unit_fsm
       end
 
       S_EXEC_LDI_IP: ctrl.pc_inc = 1'b1;
+
+      S_EXEC_1R_CB_C1: begin
+        // throw reg b onto bus, set alu b input to 0
+        // perform reg b - 0 to set zero flag (z=1 only if reg b = 0)
+        ctrl.src_sel = BUS_SRC_REG_B;
+        ctrl.alutmp_zero = 1'b1;
+        ctrl.flgs_z_we = 1'b1;
+        ctrl.aluop = ALU_SUB;
+      end
+
+      S_EXEC_1R_CB_C2: begin
+        // since cycle 1 has set the zero flag, just need to handle
+        // branching / pc increment (not taken) here
+        case (instr_fmt)
+          FMT_SINGLE: begin
+            case (instr.single.opcode)
+              OP_CBZ: begin
+                if (zero_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+              OP_CBNZ: begin
+                if (!zero_flag) begin
+                  ctrl.src_sel = BUS_SRC_RAM;
+                  ctrl.dst_sel = BUS_DST_PC;
+                end else begin
+                  ctrl.pc_inc = 1'b1;
+                end
+              end
+              default: ;
+            endcase
+          end
+          default: ;
+        endcase
+      end
 
       default: ;  // empty; zeroed at top
     endcase

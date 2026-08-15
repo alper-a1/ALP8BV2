@@ -27,11 +27,11 @@ ENCODING        MNEMONIC    OPERANDS        OPERATION                   FLAGS(C)
 0100 0010       JNC         Imm8            If C == 0: PC <- Imm8       -          2           AAAA AAAA
 0100 0011       [UNUSED]
 0100 01RB       JMPR        RB              PC <- RB                    -          1           /
-0100 10RB       CBZ         RB, Imm8        If RB ==  0: PC <- Imm8     -          2           AAAA AAAA     
-0100 11RB       CBNZ        RB, Imm8        If RB !=  0: PC <- Imm8     -          2           AAAA AAAA     
-0101 RARB       CBEQ        RA, RB, Imm8    If RA == RB: PC <- Imm8     -          2           AAAA AAAA
-0110 RARB       CBNE        RA, RB, Imm8    If RA != RB: PC <- Imm8     -          2           AAAA AAAA
-0111 RARB       CBLT        RA, RB, Imm8    If RA <  RB: PC <- Imm8     -          2           AAAA AAAA
+0100 10RB       CBZ         RB, Imm8        If RB ==  0: PC <- Imm8     *          2           AAAA AAAA     
+0100 11RB       CBNZ        RB, Imm8        If RB !=  0: PC <- Imm8     *          2           AAAA AAAA     
+0101 RARB       CBEQ        RA, RB, Imm8    If RA == RB: PC <- Imm8     *          2           AAAA AAAA
+0110 RARB       CBNE        RA, RB, Imm8    If RA != RB: PC <- Imm8     *          2           AAAA AAAA
+0111 RARB       CBLT        RA, RB, Imm8    If RA <  RB: PC <- Imm8     *          2           AAAA AAAA
 
 1000 RARB       ADD         RA, RB          RA <- RA + RB               *          1           /
 1001 RARB       ADC         RA, RB, C       RA <- RA + RB + C           *          1           /

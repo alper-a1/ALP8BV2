@@ -23,7 +23,10 @@ package fsm_states;
     S_EXEC_WR_RAM,    // write to ram [from ra] (STM)
 
     S_EXEC_LDI_LM,  // LDI load imm8 from mem
-    S_EXEC_LDI_IP   // LDI inc pc past imm8 and onto next instruction
+    S_EXEC_LDI_IP,  // LDI inc pc past imm8 and onto next instruction
+
+    S_EXEC_1R_CB_C1,  // single reg compare to zero type cycle 1
+    S_EXEC_1R_CB_C2   // single reg compare to zero type cycle 2
 
   } state_t;
 
