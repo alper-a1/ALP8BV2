@@ -149,17 +149,17 @@ std::vector<TokenizedLine> TokenizeSourceFile(const std::filesystem::path &sourc
 }
 
 std::vector<TokenizedLine> LoadSourceWithBuiltins(const std::filesystem::path &source_path,
-                                                  const std::string &builtins_filename = "__built-ins.asm") {
+                                                  const std::filesystem::path &builtins_path) {
     std::vector<TokenizedLine> full_stream;
 
     // Look for built-ins next to the assembler binary
     // NOTE: will only work on linux, for now fine - but in future  resolving the path of builtins should probably be
     // fixed along with adding %include
-    std::filesystem::path builtins_path =
-        std::filesystem::canonical("/proc/self/exe").parent_path() / builtins_filename;
+    std::filesystem::path builtins_full_path =
+        std::filesystem::canonical("/proc/self/exe").parent_path() / builtins_path;
 
-    if (std::filesystem::exists(builtins_path)) {
-        auto builtins = TokenizeSourceFile(builtins_path);
+    if (std::filesystem::exists(builtins_full_path)) {
+        auto builtins = TokenizeSourceFile(builtins_full_path);
         full_stream.insert(full_stream.end(), std::make_move_iterator(builtins.begin()),
                            std::make_move_iterator(builtins.end()));
     } else {
