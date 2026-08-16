@@ -1,3 +1,5 @@
+#include "lexer.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
@@ -6,11 +8,9 @@
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 #include <vector>
 
 #include "asm_error.hpp"
-#include "lexer.hpp"
 #include "token.hpp"
 
 // convert file to raw line array
