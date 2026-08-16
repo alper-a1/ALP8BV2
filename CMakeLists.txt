@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.0)
-project(VerilogDevTemplate CXX)
+project(ALP8BV2 CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,3 +64,7 @@ verilate(${ALP8B}
     INCLUDE_DIRS    "src/dp;src/cu;src/dp/alu"
     VERILATOR_ARGS  "-Wall"
 )
+
+# --- Subdir CMakeLists -----------------------------------------------------
+
+add_subdirectory(tools/assembler)
