@@ -1,0 +1,39 @@
+Checks: >
+  -*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-avoid-do-while,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  performance-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  misc-const-correctness,
+  misc-unused-parameters
+
+# Apply project clang-format rules to automatic fixes
+FormatStyle: file
+
+# Check-specific tuners
+CheckOptions:
+  # --- modernize ---
+  # Enable modern pipe syntax for ranges (v | std::views::reverse)
+  modernize-use-ranges.UseReversePipe: true
+  # Only suggest 'auto' for types with names >= 5 chars (skips int, etc.)
+  modernize-use-auto.MinTypeNameLength: 5
+
+  # --- misc ---
+  # Require const on non-mutated local pointers/references/values
+  misc-const-correctness.TransformValues: true
+  misc-const-correctness.TransformPointers: true
+  misc-const-correctness.TransformReferences: true

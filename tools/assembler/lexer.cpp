@@ -93,7 +93,7 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
         }
 
         // assume its an identifier
-        TokenType type;
+        TokenType type{};
 
         // only check index zero for types that are not identifier (they cannot be anywehre else)
         if (index == 0) {
@@ -115,9 +115,9 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
             // quotes)
             if (token_sv.size() >= 2 && token_sv.starts_with('"') && token_sv.ends_with('"')) {
                 type = TokenType::STRING;
-            } else if (std::isdigit(static_cast<unsigned char>(token_sv.front())) ||
+            } else if ((std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0) ||
                        (token_sv.size() > 1 && (token_sv.front() == '-' || token_sv.front() == '+') &&
-                        std::isdigit(static_cast<unsigned char>(token_sv[1])))) {
+                        (std::isdigit(static_cast<unsigned char>(token_sv[1])) != 0))) {
                 // either start with a digit , or start with a '+' pr '-' then a digit
                 type = TokenType::IMMEDIATE;
             } else {

@@ -68,7 +68,7 @@ ModelALUResult model_alu(Valu_alu_defs::alu_op_t op, uint8_t a, uint8_t b, uint8
     }
     case Valu_alu_defs::alu_op_t::ALU_SUB: {
         out.result = a - b;
-        out.cout_flag = (a < b); // if A is smaller a borrow (1) is generated
+        out.cout_flag = static_cast<uint8_t>(a < b); // if A is smaller a borrow (1) is generated
         break;
     }
     case Valu_alu_defs::alu_op_t::ALU_SBC: {
@@ -87,7 +87,7 @@ ModelALUResult model_alu(Valu_alu_defs::alu_op_t op, uint8_t a, uint8_t b, uint8
         break;
     }
     }
-    out.zero_flag = out.result == 0;
+    out.zero_flag = static_cast<uint8_t>(out.result == 0);
 
     return out;
 }

@@ -26,7 +26,7 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(const std
     bool desc_found = false;
     bool date_found = false;
 
-    for (auto &tl : lines) {
+    for (const auto &tl : lines) {
         // shouldnt happen since we sanizied for this in lexer , but just incase
         if (tl.tokens.empty()) {
             continue;
@@ -43,13 +43,15 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(const std
             // for each directive type check if we have already found it before, if not collect its arguments and add to
             // metadata struct
             if (dir == ".NAME") {
-                if (name_found)
+                if (name_found) {
                     throw AsmError(tl.lineno, "Duplicate .NAME directive", tl.source_file);
+                }
                 name_found = true;
                 metadata.name = ConcatDirectiveArgs(tl);
             } else if (dir == ".CLOCK") {
-                if (clock_found)
+                if (clock_found) {
                     throw AsmError(tl.lineno, "Duplicate .CLOCK directive", tl.source_file);
+                }
                 clock_found = true;
                 // clock directive is different in that it only wants ONE argument
                 if (tl.tokens.size() > 2) {
@@ -71,13 +73,15 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(const std
                 }
 
             } else if (dir == ".DESC") {
-                if (desc_found)
+                if (desc_found) {
                     throw AsmError(tl.lineno, "Duplicate .DESC directive", tl.source_file);
+                }
                 desc_found = true;
                 metadata.description = ConcatDirectiveArgs(tl);
             } else if (dir == ".DATE") {
-                if (date_found)
+                if (date_found) {
                     throw AsmError(tl.lineno, "Duplicate .DATE directive", tl.source_file);
+                }
                 date_found = true;
                 metadata.date = ConcatDirectiveArgs(tl);
             } else {
@@ -85,7 +89,7 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(const std
             }
         } else {
             // Keep instructions, macro definitions, and everything else
-            cleaned_lines.push_back(std::move(tl));
+            cleaned_lines.push_back(tl);
         }
     }
 
