@@ -16,7 +16,7 @@ std::string ConcatDirectiveArgs(const TokenizedLine &tl) {
            std::ranges::to<std::string>();
 }
 
-std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(const std::vector<TokenizedLine> &lines) {
+std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vector<TokenizedLine> lines) {
     std::vector<TokenizedLine> cleaned_lines;
     cleaned_lines.reserve(lines.size());
 

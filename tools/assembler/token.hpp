@@ -17,14 +17,23 @@ enum class TokenType {
 };
 
 struct Token {
-    TokenType type;
     std::string raw;
+    TokenType type;
+
+    [[nodiscard]] bool MatchesType(const Token &other) const noexcept { return this->type == other.type; }
+
+    [[nodiscard]] bool MatchesRaw(const Token &other) const noexcept { return this->raw == other.raw; }
+
+    auto operator<=>(const Token &) const = default;
 };
 
 struct TokenizedLine {
     std::vector<Token> tokens;
     size_t lineno;
     std::filesystem::path source_file;
+
+    // view into the first token cpp23 goated style
+    [[nodiscard]] auto &GetFirstToken(this auto &self) noexcept { return self.tokens.front(); }
 };
 
 struct RawLine {

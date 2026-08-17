@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <iostream>
 #include <print>
+#include <utility>
 
 #include "asm_error.hpp"
 #include "lexer.hpp"
@@ -16,7 +17,7 @@ int main(int argc, char **argv) {
         std::filesystem::path input_path(argv[1]);
 
         auto tokenized = LoadSourceWithBuiltins(input_path);
-        auto [meta_pass, metadata] = ExtractMetadata(tokenized);
+        auto [meta_pass, metadata] = ExtractMetadata(std::move(tokenized));
 
     } catch (const AsmError &e) {
         std::println(std::cerr, "Assembly Error: {}", e.what());

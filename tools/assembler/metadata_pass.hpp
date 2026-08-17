@@ -13,4 +13,4 @@ struct ProgramMetadata {
     std::string clock; // stored as string, but is a valid number!
 };
 
-std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(const std::vector<TokenizedLine> &lines);
+std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vector<TokenizedLine> lines);
