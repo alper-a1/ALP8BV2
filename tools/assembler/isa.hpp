@@ -1,8 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
+#include <ranges>
 #include <string>
 #include <unordered_map>
+#include <vector>
+
 enum class OperandShape { NONE, SINGLE_REG, SINGLE_REG_IMM8, DUAL_REG, DUAL_REG_IMM8, IMM8_ONLY };
 
 // quick wrapper to map shape to the words (bytes) it takes up
@@ -25,7 +29,7 @@ struct InstrDef {
     uint8_t encoding;
     OperandShape shape;
 
-    int GetWordSize() const { return ShapeToWordSize(shape); }
+    [[nodiscard]] int GetWordSize() const { return ShapeToWordSize(shape); }
 };
 
 const std::unordered_map<std::string, InstrDef> INSTRS{
@@ -75,3 +79,11 @@ const std::unordered_map<std::string, uint8_t> REGISTERS{
     {"R2", 0b10},
     {"R3", 0b11},
 };
+
+// just a reference to the keys of both REGISTERS and INSTRS. used in checks for stuff defined by the user to ensure
+// that they cannot use indentifers that are reserved by builtins
+const std::vector<std::string> BUILTINS = [] {
+    auto vec = REGISTERS | std::views::keys | std::ranges::to<std::vector<std::string>>();
+    vec.append_range(INSTRS | std::views::keys);
+    return vec;
+}();

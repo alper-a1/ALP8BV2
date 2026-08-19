@@ -5,25 +5,31 @@ A 4-pass assembler for the ALP8B v1.1 ISA, targeting `tools/assembler/`.
 ## Pipeline
 
 ```
-raw source (built-ins + user @/% includes, each lexed with own line numbering)
+source_path + __built-ins.asm (loader level, each lexed with own line numbering)
    │
    ▼
-lexer            source -> vector<Line<Token>>
+lexer (LoadSourceWithBuiltins)  loads & tokenizes files -> vector<TokenizedLine>
    │
    ▼
-metadata_pass     strips '.' metadata lines, populates ProgramMetadata
+metadata_pass                   strips '.' metadata lines, populates ProgramMetadata
    │
    ▼
-define_pass       '%DEFINE' substitution (pre-step inside macro stage)
+define_pass                     '%DEFINE' token substitution (single-pass, chaining allowed)
    │
    ▼
-macro_pass        '%MACRO' expansion, incl. built-ins; may emit multiple lines/labels
+macro_pass                      '%MACRO' expansion & body label mangling (__<id>_<name>)
    │
    ▼
-label_pass        sees only true instructions + '@'/'$' directives; addresses trustworthy
+label_pass                      resolves '$PCSET' & builds SymbolTable;
+   │                            attaches resolved PC addresses directly to each line;
+   │                            performs '@INISAFE' bounds validation
    │
    ▼
-codegen           table lookup -> encode; '@' directives write bytes
+codegen                         consumes pre-addressed lines + SymbolTable;
+                                performs opcode lookup, encodes bytes, and executes '@' data writes
+   │
+   ▼
+write_intel_hex                 formats final memory buffer + ProgramMetadata to disk
 ```
 
 **Design invariant:** each pass's *output* is a strict subset of syntax — by the time
@@ -94,11 +100,13 @@ pass owns it — no need to memorize individual directive names to know their ti
 ```
 - Implemented as a pre-step inside the macro stage (`define_pass`), pure single-pass
   search-and-replace over **tokens**, not raw text.
-- `value` must be a **single token** (no chaining — a define's value is never re-scanned
-  for other define names).
+- `value` must be a **single token**. If that token is an IDENTIFIER matching a previously
+  defined `%DEFINE`, it is resolved immediately (chaining allowed). A define's value is never
+  re-scanned recursively — only one level of chain is followed.
+- `name` cannot shadow a built-in mnemonic or register name (checked against `BUILTINS`).
 - Works inside any instruction / directive / macro definition body.
 - `name`/`value` must not contain `:` (risk of colliding with label generation).
-- Cannot share a name with a `%MACRO` (shared namespace, single dedup check).
+- Cannot share a name with a `%MACRO` OR its parameters (shared namespace, single dedup check).
 
 ### `%MACRO` / `%ENDMACRO`
 ```
@@ -110,10 +118,12 @@ pass owns it — no need to memorize individual directive names to know their ti
 - `name`/`args` cannot contain `;` or space.
 - Labels created inside a macro body are auto-prefixed `__` and numbered with a
   **global** incrementing counter, e.g. `__1halt:`, `__2usrmacro:`.
-- Macro bodies **cannot contain `@`/`$` directives** — checked at *definition* time
-  (reject immediately), not at expansion time.
-- Macros **cannot recurse**, and (v1) cannot invoke other macros at all — kept simple by
-  design; may be revisited later.
+- Macro bodies **cannot contain `@`/`$` directives as the first token of a line** — checked
+  at *definition* time (reject immediately), not at expansion time.
+- Macros **cannot recurse**, and (v1) cannot invoke other macros at all — enforced at
+  *expansion* time by checking each body token against known macro names.
+- A macro's name and arguments cannot shadow a built-in mnemonic or register name.
+- Labels defined inside a macro body cannot shadow a built-in mnemonic or register name.
 - No duplicate names; no name shared with a `%DEFINE`.
 - Macros with no args are valid (simple defines-via-expansion, e.g. `HALT`).
 
@@ -172,7 +182,7 @@ tools/assembler/
 ├── main.cpp            orchestration only — reads like a 1:1 summary of the pipeline
 ├── token.hpp            Token, TokenType, Line — shared IR, no ISA knowledge
 ├── asm_error.hpp         shared AsmError type, thrown by every pass
-├── isa.hpp               INSTRS, REGISTERS, OperandShape — ISA data tables only
+├── isa.hpp               INSTRS, REGISTERS, BUILTINS, OperandShape — ISA data tables + builtin name set
 ├── lexer.hpp/.cpp         source text -> vector<Line>
 ├── metadata.hpp           ProgramMetadata struct (+ extract_metadata decl, or split out)
 ├── metadata_pass.cpp       strips '.' lines, populates ProgramMetadata
@@ -184,25 +194,15 @@ tools/assembler/
 ### `main.cpp` shape (target)
 
 ```cpp
-auto builtins       = tokenize_source(read_file("__built-ins.asm"));
-auto user_raw       = tokenize_source(read_file(source_path));
-auto resolved       = resolve_includes(builtins, user_raw);   // '%INCLUDE' splicing
-
-auto [meta, code]   = extract_metadata(resolved);
-auto defined        = resolve_defines(code);                  // '%DEFINE'
-auto expanded       = expand_macros(defined);                 // '%MACRO'
-auto labels         = build_label_table(expanded);             // '$'/'@' aware
-auto mem            = generate(expanded, labels);               // '@' writes bytes
-
-write_intel_hex(mem, meta, out_path);
+auto tokenized      = LoadSourceWithBuiltins(source_path);    // lexer + __built-ins.asm injection
+auto [code, meta]   = ExtractMetadata(tokenized);             // strips '.' lines
+auto expanded       = ResolveMacroAndDefine(code);            // '%DEFINE' + '%MACRO' (two internal passes)
+// ... label_pass, codegen, write_intel_hex — not yet implemented
 ```
 
 ---
 
 ## Open items (decide during implementation, not blocking)
 
-- Confirm single shared name-dedup table across `%DEFINE` + `%MACRO` (+ built-ins),
-  populated in file order, forward references disallowed.
-- `.NAME`/`.DESC`/`.DATE`/`.CLOCK`: confirm whether all four are mandatory or
-  optional-with-ordering-only-if-present (current lexer rule only constrains
-  no-duplicates + anywhere-in-file, not presence).
+- `.NAME` and `.CLOCK` are **mandatory** (enforced by `metadata_pass`). `.DESC` and `.DATE` are optional.
+- Single shared namespace across `%DEFINE` + `%MACRO` (+ built-ins) is confirmed — populated in file order, forward references disallowed. `%DEFINE` and `%MACRO` names cannot shadow built-in mnemonics or registers.

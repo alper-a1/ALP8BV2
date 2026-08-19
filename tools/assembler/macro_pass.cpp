@@ -5,6 +5,7 @@
 #include <format>
 #include <map>
 #include <ranges>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -13,7 +14,7 @@
 #include "token.hpp"
 
 // public interface definition
-std::vector<TokenizedLine> ResolveMacroAndDefine(std::vector<TokenizedLine> lines) {
+std::vector<TokenizedLine> ResolveDefineAndMacro(std::vector<TokenizedLine> lines) {
     MacroEngine engine(std::move(lines));
     return engine.Run();
 }
@@ -57,7 +58,7 @@ void MacroEngine::ResolveDefines() {
             const std::string &key = tl.tokens[1].raw;
 
             // defines cannot overwrite
-            if (INSTRS.contains(key)) {
+            if (std::ranges::contains(BUILTINS, key)) {
                 throw AsmError(tl.lineno, std::format("%DEFINE cannot overwrite built-in mnemonic '{}'", key),
                                tl.source_file);
             }
@@ -142,8 +143,12 @@ void MacroEngine::ExpandMacros() {
                                        tl.source_file);
                     }
 
+                    // with no ':' suffix
+                    std::string raw_label_name = first.raw.substr(0, first.raw.size() - 1);
                     // check if label name collides with macro args
-                    it = std::ranges::find_if(current_macro.args, [&](const Token &t) { return t.raw == first.raw; });
+                    // must match the raw label name without the ':'
+                    it = std::ranges::find_if(current_macro.args,
+                                              [&](const Token &t) { return t.raw == raw_label_name; });
                     if (it != current_macro.args.end()) {
                         throw AsmError(
                             tl.lineno,
@@ -151,7 +156,21 @@ void MacroEngine::ExpandMacros() {
                             tl.source_file);
                     }
 
+                    // ensure the label isnt a builtin mnemonic
+                    if (std::ranges::contains(BUILTINS, raw_label_name)) {
+                        throw AsmError(
+                            tl.lineno,
+                            std::format(
+                                "%MACRO {} cannot contain internal labels that share names with builtin mnemonics",
+                                current_macro.name.raw),
+                            tl.source_file);
+                    }
+
                     current_macro.local_labels.push_back(first);
+                } // disallow certain tokens inside macro bodies (DATA directive may change in future)
+                else if (first.type == TokenType::BOOK_DIRECTIVE || first.type == TokenType::DATA_DIRECTIVE) {
+                    throw AsmError(tl.lineno, "%MACRO bodies cannot contain BOOK ('$') or DATA ('@') directives.",
+                                   tl.source_file);
                 }
                 // push the body line regardless of if its a label or not
                 current_macro.body.push_back(std::move(tl));
@@ -258,6 +277,12 @@ void MacroEngine::ExpandMacros() {
                     if (auto it = mdef_to_callsite.find(t); it != mdef_to_callsite.end()) {
                         to_insert.tokens.push_back(it->second);
                         continue;
+                    }
+
+                    // macros cannot recurse, ensure that the body of this is not calling another macro
+                    if (std::ranges::contains(this->macros | std::views::keys, t.raw)) {
+                        throw AsmError(mbtl.lineno, "%MACRO's cannot call other macros (recursion disallowed)",
+                                       tl.source_file);
                     }
 
                     // if it is a token that is a label def, or an identifer that is a label - reaplce with its mangled

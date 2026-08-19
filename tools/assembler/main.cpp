@@ -5,6 +5,7 @@
 
 #include "asm_error.hpp"
 #include "lexer.hpp"
+#include "macro_pass.hpp"
 #include "metadata_pass.hpp"
 
 int main(int argc, char **argv) {
@@ -18,6 +19,7 @@ int main(int argc, char **argv) {
 
         auto tokenized = LoadSourceWithBuiltins(input_path);
         auto [meta_pass, metadata] = ExtractMetadata(std::move(tokenized));
+        auto expanded = ResolveDefineAndMacro(std::move(meta_pass));
 
     } catch (const AsmError &e) {
         std::println(std::cerr, "Assembly Error: {}", e.what());

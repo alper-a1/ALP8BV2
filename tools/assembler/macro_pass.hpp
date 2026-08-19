@@ -55,4 +55,4 @@ class MacroEngine {
 };
 
 // public interface to use the macro. should not create and call macroengine.run directly
-std::vector<TokenizedLine> ResolveMacroAndDefine(std::vector<TokenizedLine> lines);
+std::vector<TokenizedLine> ResolveDefineAndMacro(std::vector<TokenizedLine> lines);
