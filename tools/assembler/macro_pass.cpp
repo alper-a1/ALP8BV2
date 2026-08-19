@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <format>
+#include <map>
 #include <ranges>
-#include <set>
+#include <unordered_map>
 #include <vector>
 
 #include "asm_error.hpp"
@@ -140,6 +141,16 @@ void MacroEngine::ExpandMacros() {
                         throw AsmError(tl.lineno, std::format("%MACRO has duplicate label definition: {}", first.raw),
                                        tl.source_file);
                     }
+
+                    // check if label name collides with macro args
+                    it = std::ranges::find_if(current_macro.args, [&](const Token &t) { return t.raw == first.raw; });
+                    if (it != current_macro.args.end()) {
+                        throw AsmError(
+                            tl.lineno,
+                            std::format("%MACRO has label definition that is the same as an arguement: {}", first.raw),
+                            tl.source_file);
+                    }
+
                     current_macro.local_labels.push_back(first);
                 }
                 // push the body line regardless of if its a label or not
@@ -204,18 +215,71 @@ void MacroEngine::ExpandMacros() {
             const auto &macro = this->macros[first.raw];
 
             // ensure that the callsite has the right number of args
-            if (tl.tokens.size() - 1 != macro.args.size()) {
+            constexpr size_t callsite_non_arg_tokens = 1; // just the name token
+            if (tl.tokens.size() - callsite_non_arg_tokens != macro.args.size()) {
                 throw AsmError(tl.lineno,
                                std::format("Invalid number of arguments given to %MACRO {}, expected={} got={}",
-                                           macro.name.raw, macro.args.size(), tl.tokens.size() - 1),
+                                           macro.name.raw, macro.args.size(),
+                                           tl.tokens.size() - callsite_non_arg_tokens),
                                tl.source_file);
             }
 
-            // Expand the macro!
-            // - Mangle the labels
-            // - Substitute the arguments
-            // - Push the expanded lines into 'parsed'
-            // (We will write this expansion logic next!)
+            // build the mapping for replacement - drop 1 to ignore the name
+            std::map<Token, Token> mdef_to_callsite;
+            for (const auto &[i, t] :
+                 tl.tokens | std::ranges::views::drop(callsite_non_arg_tokens) | std::views::enumerate) {
+                mdef_to_callsite[macro.args[i]] = t;
+            }
+
+            // build the mangled label mapping
+            // every time we see label in the body when writing , we will swap with the mangled version
+            // identifiers that are label sites will also get swapped since its raw text swapping.
+            // this is so that macros have unique labels
+            const size_t macro_instance = this->macro_instance_ctr++;
+            std::map<std::string, std::string> mangled_labels;
+
+            for (const auto &l : macro.local_labels) {
+                // get the true label name without the colon
+                std::string label_name = l.raw.substr(0, l.raw.size() - 1);
+                mangled_labels[label_name] = std::format("__{}_{}", macro_instance, label_name);
+            }
+
+            // iterate through the macro matching tokens and inserting
+            // no need to check collision errors here as they  should be filtered out by now from the compile time
+            // errors at definition
+            for (const auto &mbtl : macro.body) {
+                TokenizedLine to_insert;
+                to_insert.lineno = mbtl.lineno; // use the macro definition lineno
+                to_insert.source_file = tl.source_file;
+                to_insert.tokens.reserve(mbtl.tokens.size());
+
+                for (const auto &t : mbtl.tokens) {
+                    // param reference -> substitute with callsite value
+                    if (auto it = mdef_to_callsite.find(t); it != mdef_to_callsite.end()) {
+                        to_insert.tokens.push_back(it->second);
+                        continue;
+                    }
+
+                    // if it is a token that is a label def, or an identifer that is a label - reaplce with its mangled
+                    // version
+                    if (t.type == TokenType::LABEL_DEF || t.type == TokenType::IDENTIFIER) {
+                        std::string bare = t.type == TokenType::LABEL_DEF ? t.raw.substr(0, t.raw.size() - 1) : t.raw;
+
+                        if (auto it = mangled_labels.find(bare); it != mangled_labels.end()) {
+                            Token mangled = t;
+                            // add back the colon only if its a label definition
+                            mangled.raw = t.type == TokenType::LABEL_DEF ? it->second + ":" : it->second;
+                            to_insert.tokens.push_back(std::move(mangled));
+                            continue;
+                        }
+                    }
+
+                    // unrelated token, copy through unchanged
+                    to_insert.tokens.push_back(t);
+                }
+
+                parsed.push_back(std::move(to_insert));
+            }
 
             // skip, since we dont want the old callsite anymore
             continue;

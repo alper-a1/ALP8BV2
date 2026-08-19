@@ -125,7 +125,7 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
             }
         }
 
-        out.tokens.push_back(Token{.type = type, .raw = std::ranges::to<std::string>(raw_token)});
+        out.tokens.push_back(Token{.raw = std::ranges::to<std::string>(raw_token), .type = type});
     }
 
     return out;

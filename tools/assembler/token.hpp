@@ -8,7 +8,7 @@
 enum class TokenType {
     IDENTIFIER,      // raw text, no prefix - mnemonics, register names, macro names, labels-in-operand-position
     IMMEDIATE,       // 0x0A, 12, 0b01
-    LABEL_DEF,       // ends with ': '    (colon space)
+    LABEL_DEF,       // ends with ':'     (label: )
     META_DIRECTIVE,  // starts with '.'   (.NAME, .DESC, .DATE, .CLOCK)
     MACRO_DIRECTIVE, // starts with '%'   (%MACRO, %ENDMACRO, %DEFINE, %INCLUDE)
     BOOK_DIRECTIVE,  // starts with '$'   ($PCSET)
