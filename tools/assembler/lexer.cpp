@@ -110,14 +110,22 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
             } else {
                 type = TokenType::IDENTIFIER;
             }
+
+            // ensure that there are no empty directive lines or labels
+            if (std::ranges::contains(std::initializer_list<TokenType>{TokenType::META_DIRECTIVE,
+                                                                       TokenType::MACRO_DIRECTIVE,
+                                                                       TokenType::BOOK_DIRECTIVE,
+                                                                       TokenType::DATA_DIRECTIVE, TokenType::LABEL_DEF},
+                                      type) &&
+                token_sv.size() == 1) {
+                throw AsmError(out.lineno, "Empty directive / label - name required", out.source_file);
+            }
+
         } else {
-            // for all other non zero indexed tokens, they can either be an identifer, immediate or string>=2 (in
-            // quotes)
-            if (token_sv.size() >= 2 && token_sv.starts_with('"') && token_sv.ends_with('"')) {
-                type = TokenType::STRING;
-            } else if ((std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0) ||
-                       (token_sv.size() > 1 && (token_sv.front() == '-' || token_sv.front() == '+') &&
-                        (std::isdigit(static_cast<unsigned char>(token_sv[1])) != 0))) {
+            // for all other non zero indexed tokens, they can either be an identifer or immediate
+            if ((std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0) ||
+                (token_sv.size() > 1 && (token_sv.front() == '-' || token_sv.front() == '+') &&
+                 (std::isdigit(static_cast<unsigned char>(token_sv[1])) != 0))) {
                 // either start with a digit , or start with a '+' pr '-' then a digit
                 type = TokenType::IMMEDIATE;
             } else {

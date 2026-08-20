@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -12,8 +13,7 @@ enum class TokenType {
     META_DIRECTIVE,  // starts with '.'   (.NAME, .DESC, .DATE, .CLOCK)
     MACRO_DIRECTIVE, // starts with '%'   (%MACRO, %ENDMACRO, %DEFINE, %INCLUDE)
     BOOK_DIRECTIVE,  // starts with '$'   ($PCSET)
-    DATA_DIRECTIVE,  // starts with '@'   (@INISAFE, @INIUNSAFE)
-    STRING,          // "any thing in quotes,"
+    DATA_DIRECTIVE   // starts with '@'   (@INISAFE, @INIUNSAFE)
 };
 
 struct Token {
@@ -31,6 +31,11 @@ struct TokenizedLine {
     std::vector<Token> tokens;
     size_t lineno;
     std::filesystem::path source_file;
+
+    // program counter (starting) address of this line
+    // only used during label pass & codegen
+    // size_t since we handle pc overflow explitly in the passes
+    std::optional<size_t> pc = std::nullopt;
 
     // view into the first token cpp23 goated style
     [[nodiscard]] auto &GetFirstToken(this auto &self) noexcept { return self.tokens.front(); }

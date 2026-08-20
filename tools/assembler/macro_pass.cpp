@@ -7,6 +7,7 @@
 #include <ranges>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "asm_error.hpp"
@@ -34,12 +35,12 @@ void MacroEngine::ResolveDefines() {
     std::vector<TokenizedLine> parsed;
     parsed.reserve(this->lines.size()); // probably a similar number after parsing, reserve it.
 
-    for (auto &tl : this->lines) {
+    for (const auto &tl : this->lines) {
         // shouldnt happen since we sanizied for this in lexer , but just incase
         if (tl.tokens.empty()) {
             continue;
         }
-        Token &first = tl.GetFirstToken();
+        auto first = tl.GetFirstToken();
 
         // this line is not an identifer, cannot be define-replaced
         // check if it is a define defenition itself, else add to parsed lines and go next
@@ -65,14 +66,14 @@ void MacroEngine::ResolveDefines() {
 
             // if the define's value is a previous define, get its value immediately and set it
             // required for chained defines
-            Token val_tok = std::move(tl.tokens[2]);
+            Token val_tok = tl.tokens[2];
             if (val_tok.type == TokenType::IDENTIFIER) {
                 if (this->defines.contains(val_tok.raw)) {
                     val_tok = this->defines.at(val_tok.raw).value;
                 }
             }
 
-            DefineDef def{.name = std::move(tl.tokens[1]), .value = std::move(val_tok)};
+            DefineDef def{.name = tl.tokens[1], .value = std::move(val_tok)};
 
             auto [it, inserted] = this->defines.try_emplace(key, std::move(def));
             if (!inserted) {
@@ -86,21 +87,24 @@ void MacroEngine::ResolveDefines() {
         // macro definitions cannot be replaced, so just move these raw
         // macro BODIES are effected by defines!!
         if (first.type == TokenType::MACRO_DIRECTIVE && first.raw == "%MACRO") {
-            parsed.push_back(std::move(tl));
+            parsed.push_back(tl);
             continue;
         }
 
         // finally perform token substitution on all non-'%' lines
-        for (auto &tok : tl.tokens) {
+        // modify the tokenized line if it has a define in it
+        TokenizedLine subbed{.lineno = tl.lineno, .source_file = tl.source_file};
+        for (auto tok : tl.tokens) {
             if (tok.type == TokenType::IDENTIFIER) {
                 if (auto it = this->defines.find(tok.raw); it != this->defines.end()) {
                     tok.raw = it->second.value.raw;
                     tok.type = it->second.value.type;
                 }
             }
+            subbed.tokens.push_back(std::move(tok));
         }
 
-        parsed.push_back(std::move(tl));
+        parsed.push_back(std::move(subbed));
     }
 
     // replace the source with the parsed, %DEFINE-free lines
@@ -199,8 +203,7 @@ void MacroEngine::ExpandMacros() {
             // check that NONE of the definition matches existing define/builtin
             for (const auto &t : mac_def_view) {
                 if (INSTRS.contains(t.raw)) {
-                    throw AsmError(tl.lineno,
-                                   std::format("%MACRO cannot overwrite built-in mnemonic '{}'", mac_def_view[0].raw),
+                    throw AsmError(tl.lineno, std::format("%MACRO cannot overwrite built-in mnemonic '{}'", t.raw),
                                    tl.source_file);
                 }
 
