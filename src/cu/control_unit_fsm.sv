@@ -68,7 +68,7 @@ module control_unit_fsm
           FMT_NONE: begin
             case (instr.none.opcode)
               OP_NOP: next_state = S_FETCH_IR;
-              OP_RST, OP_CLC, OP_SEC, OP_JMP, OP_JC, OP_JNC: next_state = S_EXEC_1CYCLE;
+              OP_JZR, OP_CLC, OP_SEC, OP_JMP, OP_JC, OP_JNC: next_state = S_EXEC_1CYCLE;
               default: next_state = S_ERROR;
             endcase
           end
@@ -176,13 +176,13 @@ module control_unit_fsm
       end
 
       // single cycle instructions
-      // OP_RST, OP_CLC, OP_SEC, OP_RNG, OP_MOV
+      // OP_JZR, OP_CLC, OP_SEC, OP_RNG, OP_MOV
       // OP_JMP, OP_JMPR, OP_JC, OP_JNC
       S_EXEC_1CYCLE: begin
         case (instr_fmt)
           FMT_NONE: begin
             case (instr.none.opcode)
-              OP_RST: ctrl.pc_rst = 1'b1;
+              OP_JZR: ctrl.pc_rst = 1'b1;
               OP_CLC: begin
                 ctrl.flgs_overwrite = 1'b1;
                 ctrl.flgs_ow_value = 1'b0;

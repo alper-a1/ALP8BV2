@@ -36,7 +36,7 @@ const std::unordered_map<std::string, InstrDef> INSTRS{
     // in opcode order, roughly grouped by use
     // regiser blocks are zeroed out as default
     {"NOP", InstrDef{.encoding = 0b0000'0000, .shape = OperandShape::NONE}},
-    {"RST", InstrDef{.encoding = 0b0000'0001, .shape = OperandShape::NONE}},
+    // 0000'0001 UNUSED - future hardware SYSCALL entry point
     {"CLC", InstrDef{.encoding = 0b0000'0010, .shape = OperandShape::NONE}},
     {"SEC", InstrDef{.encoding = 0b0000'0011, .shape = OperandShape::NONE}},
 
@@ -54,7 +54,7 @@ const std::unordered_map<std::string, InstrDef> INSTRS{
     {"JMP", InstrDef{.encoding = 0b0100'0000, .shape = OperandShape::IMM8_ONLY}},
     {"JC", InstrDef{.encoding = 0b0100'0001, .shape = OperandShape::IMM8_ONLY}},
     {"JNC", InstrDef{.encoding = 0b0100'0010, .shape = OperandShape::IMM8_ONLY}},
-    //  0b0100'0011 is unused
+    {"JZR", InstrDef{.encoding = 0b0100'0011, .shape = OperandShape::NONE}},
     {"JMPR", InstrDef{.encoding = 0b0100'0100, .shape = OperandShape::SINGLE_REG}},
     {"CBZ", InstrDef{.encoding = 0b0100'1000, .shape = OperandShape::SINGLE_REG_IMM8}},
     {"CBNZ", InstrDef{.encoding = 0b0100'1100, .shape = OperandShape::SINGLE_REG_IMM8}},

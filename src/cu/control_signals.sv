@@ -45,7 +45,7 @@ package control_signals;
 
     // additional control
     logic pc_inc;    // program counter internal increment
-    logic pc_rst;    // software reset to 0x00 (RST instruction)
+    logic pc_rst;    // software reset to 0x00 (JZR instruction)
     logic addr_sel;  // 2:1 mux control for ram addressing (0: PC / 1: MAR)
 
   } control_signals_t;
