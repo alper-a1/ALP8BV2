@@ -1,25 +1,4 @@
 /**
-Approach
-
-    Label pass — attach PC to every line(as planned)
-        .Returns(lines, symbol_table)
-        .
-
-    Codegen — build a set of live addresses :
-
- ``` unordered_set<size_t> live_addresses;
-
-   for each line (in order):
-     if instruction:
-       word_size = lookup(line.mnemonic)
-       for i in 0..word_size-1:
-         live_addresses.insert(line.pc + i)
-       encode instruction into memory buffer at line.pc
- ```
-
- Then @INISAFE:
-
- ```
    if live_addresses.contains(addr): throw  // overlaps real instruction
    else: write byte
  ```
@@ -103,6 +82,10 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
 
             // parse the book directives raw value, MUST be hex literal 0x...
             std::string_view addr_lit = tl.tokens[1].raw;
+            if (addr_lit.size() < 3) {
+                throw AsmError(tl.lineno, "invalid literal to $PCSET directive: requires 0x{int8}", tl.source_file);
+            }
+
             // remove the '0x' literal marker
             addr_lit.remove_prefix(2);
 

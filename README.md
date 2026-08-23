@@ -16,3 +16,4 @@ WIP
 - verilator
 - cmake
 - magic_enum (auto installed via FetchContent plugin in CMake)
+- SDL3

@@ -38,7 +38,7 @@ std::vector<RawLine> SourceToRawLine(const std::filesystem::path &source_path) {
     return source_lines;
 }
 
-// helper function to remove all whitespace from a string (line)
+// helper function to remove all whitespace from the ends of a string (line)
 void TrimWhitespace(std::string &s) {
     constexpr std::string_view WS = " \t\r\n\f\v";
     const auto start = s.find_first_not_of(WS);
@@ -123,6 +123,20 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
 
         } else {
             // for all other non zero indexed tokens, they can either be an identifer or immediate
+
+            /* TODO
+             ┌────────────────────┬───────────┬─────────────┐
+             │ Pattern            │ Example   │ → Immediate │
+             ├────────────────────┼───────────┼─────────────┤
+             │ 0x + hex digits    │ 0xFF, 0x0 │ ✅          │
+             ├────────────────────┼───────────┼─────────────┤
+             │ 0b + binary digits │ 0b1010    │ ✅          │
+             ├────────────────────┼───────────┼─────────────┤
+             │ - + digits         │ -128      │ ✅          │
+             ├────────────────────┼───────────┼─────────────┤
+             │ digits             │ 0, 255    │ ✅          │
+             └────────────────────┴───────────┴─────────────┘
+            */
             if ((std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0) ||
                 (token_sv.size() > 1 && (token_sv.front() == '-' || token_sv.front() == '+') &&
                  (std::isdigit(static_cast<unsigned char>(token_sv[1])) != 0))) {

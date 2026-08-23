@@ -95,14 +95,13 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vect
 
     // validate mandatory metadata
     if (!name_found) {
-        // just use the source file of the first line
-        std::string src = lines.empty() ? "" : lines[0].source_file.string();
+        // just use the source file of the last line (gaurenteed to be user file, since includes are appeneded to top)
+        std::string src = lines.empty() ? "" : lines.back().source_file.string();
         throw AsmError(0, "Missing mandatory .NAME directive", src);
     }
 
     if (!clock_found) {
-        // just use the source file of the first line
-        std::string src = lines.empty() ? "" : lines[0].source_file.string();
+        std::string src = lines.empty() ? "" : lines.back().source_file.string();
         throw AsmError(0, "Missing mandatory .CLOCK directive", src);
     }
 

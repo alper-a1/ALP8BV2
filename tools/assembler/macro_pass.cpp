@@ -131,8 +131,13 @@ void MacroEngine::ExpandMacros() {
         // if in macro either append body or finish writing the macro
         if (in_macro) {
             if (first.type == TokenType::MACRO_DIRECTIVE && first.raw == "%ENDMACRO") {
+                // check that the endmacro line doesnt have trailing junk
+                if (tl.tokens.size() != 1) {
+                    throw AsmError(tl.lineno, "unexpected inline tokens after %ENDMACRO", tl.source_file);
+                }
+
                 // we hit the end of the macro
-                // no checks here since they happen at definition
+                // no additional checks here, since they occur at definition
                 this->macros[current_macro.name.raw] = std::move(current_macro);
                 in_macro = false;
             } else {
@@ -212,12 +217,22 @@ void MacroEngine::ExpandMacros() {
                                    std::format("%MACRO definition cannot contain name of %DEFINE '{}'", t.raw),
                                    tl.source_file);
                 }
+
+                // also check that everything is an identifer (not immediate)
+                if (t.type != TokenType::IDENTIFIER) {
+                    throw AsmError(tl.lineno, "%MACRO definition contain immediate values", tl.source_file);
+                }
             }
             // valid macro definition from here on, move in the definition
 
             current_macro.name = std::move(tl.tokens[1]);
             current_macro.args = std::move(mac_def_view | std::ranges::views::drop(1) | std::views::as_rvalue |
                                            std::ranges::to<std::vector>());
+
+            // double check we are not overwriting an exising macro
+            if (this->macros.contains(current_macro.name.raw)) {
+                throw AsmError(tl.lineno, "%MACRO {} previously defined. cannot overwrite", tl.source_file);
+            }
 
             // check that there are no duplicate args
             //
