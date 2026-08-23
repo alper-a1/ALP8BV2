@@ -122,3 +122,21 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
 
     return {parsed, symbol_map};
 }
+
+// go through all the lines and map the labels to the immediate values
+std::vector<TokenizedLine> ResolveAndMapLabels(std::vector<TokenizedLine> lines) {
+    auto [pc_attached, sym_table] = GenerateSymbolMap(std::move(lines));
+
+    for (auto &tl : pc_attached) {
+        for (auto &t : tl.tokens) {
+            // if we match a label, swap to immediate type and replace the raw with a hex-prefixed address (easier to
+            // debug in assembler pass dump)
+            if (sym_table.contains(t.raw)) {
+                t.type = TokenType::IMMEDIATE;
+                t.raw = std::format("0x{:X}", sym_table.at(t.raw));
+            }
+        }
+    }
+
+    return pc_attached;
+}

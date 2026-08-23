@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
         auto tokenized = LoadSourceWithBuiltins(input_path);
         auto [meta_pass, metadata] = ExtractMetadata(std::move(tokenized));
         auto expanded = ResolveDefineAndMacro(std::move(meta_pass));
-        auto [pc_attached, sym_table] = GenerateSymbolMap(std::move(expanded));
-        auto compiled = ConvertToMachineCode(pc_attached);
+        auto label_mapped = ResolveAndMapLabels(std::move(expanded));
+        auto compiled = ConvertToMachineCode(label_mapped);
 
     } catch (const AsmError &e) {
         std::println(std::cerr, "Assembly Error: {}", e.what());

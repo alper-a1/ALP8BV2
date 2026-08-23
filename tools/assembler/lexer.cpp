@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -159,6 +160,12 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
                 type = TokenType::DATA_DIRECTIVE;
             } else if (token_sv.ends_with(SUFFIX_LABEL)) {
                 type = TokenType::LABEL_DEF;
+
+                // ensure that labels CANNOT start with digits or '-' (ensures that labels can never clash with an
+                // immediate)
+                if (std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0 || token_sv.front() == '-') {
+                    throw AsmError(out.lineno, "labels cannot start with a digit or '-'", out.source_file);
+                }
             } else {
                 type = TokenType::IDENTIFIER;
             }
