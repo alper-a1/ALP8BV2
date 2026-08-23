@@ -1,13 +1,13 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <ranges>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
-enum class OperandShape { NONE, SINGLE_REG, SINGLE_REG_IMM8, DUAL_REG, DUAL_REG_IMM8, IMM8_ONLY };
+enum class OperandShape : uint8_t { NONE, SINGLE_REG, SINGLE_REG_IMM8, DUAL_REG, DUAL_REG_IMM8, IMM8_ONLY };
 
 // quick wrapper to map shape to the words (bytes) it takes up
 // anything with an imm8 is two bytes wide
@@ -23,6 +23,9 @@ constexpr int ShapeToWordSize(OperandShape shape) {
     case OperandShape::DUAL_REG_IMM8:
         return 2;
     }
+
+    // we cover all cases above in a fall through manner
+    std::unreachable();
 }
 
 struct InstrDef {

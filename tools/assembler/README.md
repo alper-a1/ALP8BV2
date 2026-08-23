@@ -163,9 +163,9 @@ happened.
 ## `@` — data-emitting directives (`label_pass` + `codegen`, writes binary)
 
 ```
-@INISAFE   addr value     ; write value at addr; error if addr falls within
+@INIT       addr value     ; write value at addr; error if addr falls within
                             ; program-instruction range
-@INIUNSAFE addr value     ; write value at addr; no protection check
+@UINIT      addr value     ; write value at addr; no protection check
 ```
 `label_pass` must have already walked the full instruction stream (to know where
 program range ends) before the `@INISAFE` bounds check can be performed — this

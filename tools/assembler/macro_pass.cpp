@@ -93,7 +93,7 @@ void MacroEngine::ResolveDefines() {
 
         // finally perform token substitution on all non-'%' lines
         // modify the tokenized line if it has a define in it
-        TokenizedLine subbed{.lineno = tl.lineno, .source_file = tl.source_file};
+        TokenizedLine subbed{.tokens = {}, .lineno = tl.lineno, .source_file = tl.source_file};
         for (auto tok : tl.tokens) {
             if (tok.type == TokenType::IDENTIFIER) {
                 if (auto it = this->defines.find(tok.raw); it != this->defines.end()) {
@@ -226,12 +226,14 @@ void MacroEngine::ExpandMacros() {
             // valid macro definition from here on, move in the definition
 
             current_macro.name = std::move(tl.tokens[1]);
-            current_macro.args = std::move(mac_def_view | std::ranges::views::drop(1) | std::views::as_rvalue |
-                                           std::ranges::to<std::vector>());
+            current_macro.args =
+                mac_def_view | std::ranges::views::drop(1) | std::views::as_rvalue | std::ranges::to<std::vector>();
 
             // double check we are not overwriting an exising macro
             if (this->macros.contains(current_macro.name.raw)) {
-                throw AsmError(tl.lineno, "%MACRO {} previously defined. cannot overwrite", tl.source_file);
+                throw AsmError(tl.lineno,
+                               std::format("%MACRO {} previously defined. cannot overwrite", current_macro.name.raw),
+                               tl.source_file);
             }
 
             // check that there are no duplicate args

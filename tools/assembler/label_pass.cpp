@@ -1,44 +1,3 @@
-/**
-   if live_addresses.contains(addr): throw  // overlaps real instruction
-   else: write byte
- ```
-
- A 2-byte instruction at PC 0x05 marks 0x05 and 0x06 as live. @INISAFE 0x07 value is fine even
- though 0x07 < program_end — it's in a gap.
-
- This is precise, cheap (set lookup), and handles arbitrary jump patterns. The label pass stays
- clean — just line → pc mapping. Codegen owns all @ logic including the safety check.
-
- Does this match your mental model?
-
-
- lgtm. this also means that if I in future add something like @FILL , I can just check it with the
- live addresses.
-
- would live address be a 256 long bool vector on what is occupied with real instructions and what
- isn't?
-
- Exactly. 256 addresses max — a std::bitset<256> is perfect:
-
- ```cpp
-   std::bitset<256> live;
-
-   // marking
-   live.set(line.pc);
-   live.set(line.pc + 1); // for 2-byte instructions
-
-   // check
-   if (live.test(addr))
-       throw; // @INISAFE collision
- ```
-
- No hashing, no allocation, compile-time size. vector<bool> works too but bitset is the right tool
- for a fixed known size.
-
-─────────────────────────────────────────────────────────────────────────────────────────────────────
-
-*/
-
 #include "label_pass.hpp"
 
 #include <algorithm>
@@ -82,6 +41,11 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
 
             // parse the book directives raw value, MUST be hex literal 0x...
             std::string_view addr_lit = tl.tokens[1].raw;
+            if (!addr_lit.starts_with("0x")) {
+                throw AsmError(tl.lineno, "$PCSET addr immediate must contain a hex literal prefixed with '0x'",
+                               tl.source_file);
+            }
+
             if (addr_lit.size() < 3) {
                 throw AsmError(tl.lineno, "invalid literal to $PCSET directive: requires 0x{int8}", tl.source_file);
             }
@@ -121,6 +85,11 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
             // increase the pc by the word size
             program_counter += INSTRS.find(first.raw)->second.GetWordSize();
 
+            // ensure we cant increment out of bounds.
+            if (program_counter > UINT8_MAX) {
+                throw AsmError(tl.lineno, "Program counter ran out-of-bounds (>255)", tl.source_file);
+            }
+
             // add the line with attached pc
             parsed.push_back(std::move(tl));
             break;
@@ -148,10 +117,6 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
             // should not happen, but just in case
             throw AsmError(tl.lineno, "ASMERROR: FORBIDDEN DIRECTIVE IN LABEL PASS", tl.source_file);
         }
-        }
-
-        if (program_counter > UINT8_MAX) {
-            throw AsmError(tl.lineno, "Program counter ran out-of-bounds (>255)", tl.source_file);
         }
     }
 

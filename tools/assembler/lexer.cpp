@@ -1,13 +1,16 @@
 #include "lexer.hpp"
 
 #include <algorithm>
-#include <cctype>
+#include <array>
+#include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 #include "asm_error.hpp"
@@ -48,6 +51,55 @@ void TrimWhitespace(std::string &s) {
     }
     const auto end = s.find_last_not_of(WS);
     s = s.substr(start, end - start + 1);
+}
+
+// attempt to parse as int and if it fails we know we have a bad immediate
+/*
+┌────────────────────┬───────────┬─────────────┐
+│ Pattern            │ Example   │ → Immediate │
+├────────────────────┼───────────┼─────────────┤
+│ 0x + hex digits    │ 0xFF, 0x0 │ ✅          │
+├────────────────────┼───────────┼─────────────┤
+│ 0b + binary digits │ 0b1010    │ ✅          │
+├────────────────────┼───────────┼─────────────┤
+│ - + digits         │ -128      │ ✅          │
+├────────────────────┼───────────┼─────────────┤
+│ digits             │ 0, 255    │ ✅          │
+└────────────────────┴───────────┴─────────────┘
+*/
+bool IsValidImmediate(std::string_view rtok) {
+    int base = 10;
+    bool signedv = false;
+
+    if (rtok.starts_with("0x")) {
+        base = 16;
+        rtok.remove_prefix(2);
+    } else if (rtok.starts_with("0b")) {
+        base = 2;
+        rtok.remove_prefix(2);
+    } else if (rtok.starts_with('-')) {
+        signedv = true;
+    }
+
+    if (signedv) {
+        std::int8_t parsed = 0;
+        auto [ptr, ec] = std::from_chars(rtok.data(), rtok.data() + rtok.size(), parsed, base);
+
+        if (ec == std::errc{} && ptr == rtok.data() + rtok.size() && parsed < INT8_MAX && parsed > INT8_MIN) {
+            return true;
+        }
+
+    } else {
+        std::uint8_t parsed = 0;
+
+        auto [ptr, ec] = std::from_chars(rtok.data(), rtok.data() + rtok.size(), parsed, base);
+
+        if (ec == std::errc{} && ptr == rtok.data() + rtok.size()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // remove comments, empty lines etc
@@ -123,27 +175,14 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
 
         } else {
             // for all other non zero indexed tokens, they can either be an identifer or immediate
+            type = TokenType::IDENTIFIER;
 
-            /* TODO
-             ┌────────────────────┬───────────┬─────────────┐
-             │ Pattern            │ Example   │ → Immediate │
-             ├────────────────────┼───────────┼─────────────┤
-             │ 0x + hex digits    │ 0xFF, 0x0 │ ✅          │
-             ├────────────────────┼───────────┼─────────────┤
-             │ 0b + binary digits │ 0b1010    │ ✅          │
-             ├────────────────────┼───────────┼─────────────┤
-             │ - + digits         │ -128      │ ✅          │
-             ├────────────────────┼───────────┼─────────────┤
-             │ digits             │ 0, 255    │ ✅          │
-             └────────────────────┴───────────┴─────────────┘
-            */
-            if ((std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0) ||
-                (token_sv.size() > 1 && (token_sv.front() == '-' || token_sv.front() == '+') &&
-                 (std::isdigit(static_cast<unsigned char>(token_sv[1])) != 0))) {
-                // either start with a digit , or start with a '+' pr '-' then a digit
-                type = TokenType::IMMEDIATE;
-            } else {
-                type = TokenType::IDENTIFIER;
+            // check if it could be a valid immediate
+            constexpr std::array imm8_candidate = {'-', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
+            for (const auto &c : imm8_candidate) {
+                if (token_sv.starts_with(c) && IsValidImmediate(token_sv)) {
+                    type = TokenType::IMMEDIATE;
+                }
             }
         }
 

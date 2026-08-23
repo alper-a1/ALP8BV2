@@ -20,10 +20,6 @@ struct Token {
     std::string raw;
     TokenType type;
 
-    [[nodiscard]] bool MatchesType(const Token &other) const noexcept { return this->type == other.type; }
-
-    [[nodiscard]] bool MatchesRaw(const Token &other) const noexcept { return this->raw == other.raw; }
-
     auto operator<=>(const Token &) const = default;
 };
 
