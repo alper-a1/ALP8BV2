@@ -288,8 +288,8 @@ void MacroEngine::ExpandMacros() {
             // errors at definition
             for (const auto &mbtl : macro.body) {
                 TokenizedLine to_insert;
-                to_insert.lineno = mbtl.lineno; // use the macro definition lineno
-                to_insert.source_file = tl.source_file;
+                to_insert.lineno = mbtl.lineno;           // use the macro definition lineno
+                to_insert.source_file = mbtl.source_file; // use the macro definition sourcefile
                 to_insert.tokens.reserve(mbtl.tokens.size());
 
                 for (const auto &t : mbtl.tokens) {

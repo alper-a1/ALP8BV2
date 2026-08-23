@@ -57,7 +57,7 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vect
                 if (tl.tokens.size() > 2) {
                     throw AsmError(tl.lineno, ".CLOCK directive recieved too many arguments", tl.source_file);
                 }
-                // turn the second argument of the clock directive into a uint16_t
+                // turn the second argument of the clock directive into a uint32_t
                 uint32_t clock_hz = 0;
                 std::string_view clock_hz_str = tl.tokens[1].raw;
 

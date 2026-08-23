@@ -4,8 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <map>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "asm_error.hpp"
@@ -63,6 +65,9 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
 
                 // addr is valided to be a sane PC number, set it.
                 program_counter = addr;
+
+                // TODO:  compile WARNING (not error) when PCSET directive can potentially destructively set the program
+                // counter overall this  is a "the programmer is smart and will behave command"
 
             } else {
                 throw AsmError(

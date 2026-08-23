@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -165,6 +166,13 @@ TokenizedLine TokenizeRawLine(const RawLine &in) {
                 // immediate)
                 if (std::isdigit(static_cast<unsigned char>(token_sv.front())) != 0 || token_sv.front() == '-') {
                     throw AsmError(out.lineno, "labels cannot start with a digit or '-'", out.source_file);
+                }
+
+                // ensure that a line that defines a label cannot have anything else on it (no trailing token after
+                // label def)
+                if (std::ranges::distance(token_views) != 1) {
+                    throw AsmError(out.lineno, std::format("trailing junk after '{}' label definition", token_sv),
+                                   out.source_file);
                 }
             } else {
                 type = TokenType::IDENTIFIER;
