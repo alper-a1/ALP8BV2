@@ -5,6 +5,7 @@
 #include <bitset>
 #include <cassert>
 #include <charconv>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <string_view>
@@ -13,47 +14,6 @@
 #include "asm_error.hpp"
 #include "isa.hpp"
 #include "token.hpp"
-
-/**
-   if live_addresses.contains(addr): throw  // overlaps real instruction
-   else: write byte
- ```
-
- A 2-byte instruction at PC 0x05 marks 0x05 and 0x06 as live. @INISAFE 0x07 value is fine even
- though 0x07 < program_end — it's in a gap.
-
- This is precise, cheap (set lookup), and handles arbitrary jump patterns. The label pass stays
- clean — just line → pc mapping. Codegen owns all @ logic including the safety check.
-
- Does this match your mental model?
-
-
- lgtm. this also means that if I in future add something like @FILL , I can just check it with the
- live addresses.
-
- would live address be a 256 long bool vector on what is occupied with real instructions and what
- isn't?
-
- Exactly. 256 addresses max — a std::bitset<256> is perfect:
-
- ```cpp
-   std::bitset<256> live;
-
-   // marking
-   live.set(line.pc);
-   live.set(line.pc + 1); // for 2-byte instructions
-
-   // check
-   if (live.test(addr))
-       throw; // @INISAFE collision
- ```
-
- No hashing, no allocation, compile-time size. vector<bool> works too but bitset is the right tool
- for a fixed known size.
-
-─────────────────────────────────────────────────────────────────────────────────────────────────────
-
-*/
 
 constexpr std::array DATA_DIRECTIVES = {std::string_view{"@INI"}, std::string_view{"@UINIT"},
                                         std::string_view{"@BLOCK"}};
@@ -176,7 +136,7 @@ uint8_t ExtractInt8FromToken(const Token &tok) {
     throw AsmError(0, "ASMERR: lexer failed to prevent bad immediate");
 }
 
-std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) {
+std::array<uint8_t, 256> ConvertToMachineCode(const std::vector<TokenizedLine> &lines) {
     std::array<uint8_t, 256> out{};
 
     std::bitset<256> live = CalculateLiveAddresses(lines);
@@ -208,8 +168,9 @@ std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) 
             }
             case (OperandShape::IMM8_ONLY): {
                 if (tl.tokens.size() != 2 || tl.tokens[1].type != TokenType::IMMEDIATE) {
-                    throw AsmError(tl.lineno, std::format("mnemonic {} should should have a single immediate operand",
-                                                          instr_it->first));
+                    throw AsmError(tl.lineno,
+                                   std::format("mnemonic {} should have a single immediate operand", instr_it->first),
+                                   tl.source_file);
                 }
 
                 uint8_t imm8 = ExtractInt8FromToken(tl.tokens[1]);
@@ -222,8 +183,9 @@ std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) 
             case (OperandShape::SINGLE_REG): {
                 if (tl.tokens.size() != 2 || tl.tokens[1].type != TokenType::IDENTIFIER ||
                     !REGISTERS.contains(tl.tokens[1].raw)) {
-                    throw AsmError(tl.lineno, std::format("mnemonic {} should should have a single register operand",
-                                                          instr_it->first));
+                    throw AsmError(tl.lineno,
+                                   std::format("mnemonic {} should have a single register operand", instr_it->first),
+                                   tl.source_file);
                 }
 
                 uint8_t regb = REGISTERS.at(tl.tokens[1].raw);
@@ -239,8 +201,9 @@ std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) 
                                !REGISTERS.contains(tl.tokens[2].raw);
 
                 if (invalid) {
-                    throw AsmError(tl.lineno, std::format("mnemonic {} should should have a two register operands",
-                                                          instr_it->first));
+                    throw AsmError(tl.lineno,
+                                   std::format("mnemonic {} should have a two register operands", instr_it->first),
+                                   tl.source_file);
                 }
 
                 uint8_t rega = REGISTERS.at(tl.tokens[1].raw);
@@ -258,14 +221,14 @@ std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) 
                                !REGISTERS.contains(tl.tokens[1].raw) || tl.tokens[2].type != TokenType::IMMEDIATE;
 
                 if (invalid) {
-                    throw AsmError(
-                        tl.lineno,
-                        std::format("mnemonic {} should should have a register operand and immediate operand",
-                                    instr_it->first));
+                    throw AsmError(tl.lineno,
+                                   std::format("mnemonic {} should have a register operand and immediate operand",
+                                               instr_it->first),
+                                   tl.source_file);
                 }
 
-                uint8_t val = ExtractInt8FromToken(tl.tokens[1]);
-                uint8_t regb = REGISTERS.at(tl.tokens[2].raw);
+                uint8_t regb = REGISTERS.at(tl.tokens[1].raw);
+                uint8_t val = ExtractInt8FromToken(tl.tokens[2]);
 
                 uint8_t constructed = instr.encoding | regb;
 
@@ -280,8 +243,10 @@ std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) 
                                !REGISTERS.contains(tl.tokens[2].raw) || tl.tokens[3].type != TokenType::IMMEDIATE;
 
                 if (invalid) {
-                    throw AsmError(tl.lineno, std::format("mnemonic {} should should have a two register operands",
-                                                          instr_it->first));
+                    throw AsmError(tl.lineno,
+                                   std::format("mnemonic {} should have a two register operands and an imm8 operand",
+                                               instr_it->first),
+                                   tl.source_file);
                 }
 
                 uint8_t rega = REGISTERS.at(tl.tokens[1].raw);
@@ -303,6 +268,71 @@ std::array<uint8_t, 256> ConvertToMachineCode(std::vector<TokenizedLine> lines) 
         }
 
         case (TokenType::DATA_DIRECTIVE): {
+            if (first.raw == "@INI") {
+                bool invalid = tl.tokens.size() != 3 || tl.tokens[1].type != TokenType::IMMEDIATE ||
+                               tl.tokens[2].type != TokenType::IMMEDIATE;
+
+                if (invalid) {
+                    throw AsmError(tl.lineno, "@INI directive should have two immediate operands ([addr] [val])",
+                                   tl.source_file);
+                }
+
+                uint8_t addr = ExtractInt8FromToken(tl.tokens[1]);
+                uint8_t val = ExtractInt8FromToken(tl.tokens[2]);
+
+                if (live.test(addr)) {
+                    throw AsmError(tl.lineno,
+                                   "@INI directive tried to overwrite program memory. if this was indended, use @UINI",
+                                   tl.source_file);
+                }
+
+                out.at(addr) = val;
+            } else if (first.raw == "@UINI") {
+                bool invalid = tl.tokens.size() != 3 || tl.tokens[1].type != TokenType::IMMEDIATE ||
+                               tl.tokens[2].type != TokenType::IMMEDIATE;
+
+                if (invalid) {
+                    throw AsmError(tl.lineno, "@UINI directive should have two immediate operands ([addr] [val])",
+                                   tl.source_file);
+                }
+
+                uint8_t addr = ExtractInt8FromToken(tl.tokens[1]);
+                uint8_t val = ExtractInt8FromToken(tl.tokens[2]);
+                // no check, just overwrite
+                out.at(addr) = val;
+            } else if (first.raw == "@BLOCK") {
+                bool invalid = tl.tokens.size() != 4 || tl.tokens[1].type != TokenType::IMMEDIATE ||
+                               tl.tokens[2].type != TokenType::IMMEDIATE || tl.tokens[3].type != TokenType::IMMEDIATE;
+
+                if (invalid) {
+                    throw AsmError(
+                        tl.lineno,
+                        "@BLOCK directive should have a three immediate operands ([addr start] [addr end] [val])",
+                        tl.source_file);
+                }
+
+                uint8_t addr_start = ExtractInt8FromToken(tl.tokens[1]);
+                uint8_t addr_end = ExtractInt8FromToken(tl.tokens[2]);
+                uint8_t val = ExtractInt8FromToken(tl.tokens[3]);
+
+                if (addr_start > addr_end) {
+                    throw AsmError(
+                        tl.lineno,
+                        "@BLOCK directive needs to have start address < end address ([addr start] [addr end] [val])",
+                        tl.source_file);
+                }
+
+                for (size_t i = addr_start; i <= addr_end; i++) {
+                    if (live.test(i)) {
+                        throw AsmError(tl.lineno,
+                                       std::format("@BLOCK tried to overwrite program mem (occured at addr {})", i),
+                                       tl.source_file);
+                    }
+
+                    out.at(i) = val;
+                }
+            }
+            break;
         }
 
         default:

@@ -85,7 +85,7 @@ bool IsValidImmediate(std::string_view rtok) {
         std::int8_t parsed = 0;
         auto [ptr, ec] = std::from_chars(rtok.data(), rtok.data() + rtok.size(), parsed, base);
 
-        if (ec == std::errc{} && ptr == rtok.data() + rtok.size() && parsed < INT8_MAX && parsed > INT8_MIN) {
+        if (ec == std::errc{} && ptr == rtok.data() + rtok.size()) {
             return true;
         }
 

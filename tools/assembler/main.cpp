@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "asm_error.hpp"
+#include "codegen.hpp"
 #include "label_pass.hpp"
 #include "lexer.hpp"
 #include "macro_pass.hpp"
@@ -22,6 +23,7 @@ int main(int argc, char **argv) {
         auto [meta_pass, metadata] = ExtractMetadata(std::move(tokenized));
         auto expanded = ResolveDefineAndMacro(std::move(meta_pass));
         auto [pc_attached, sym_table] = GenerateSymbolMap(std::move(expanded));
+        auto compiled = ConvertToMachineCode(pc_attached);
 
     } catch (const AsmError &e) {
         std::println(std::cerr, "Assembly Error: {}", e.what());
