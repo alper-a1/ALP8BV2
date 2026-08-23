@@ -9,12 +9,14 @@ add_executable(assembler
     codegen.cpp
 )
 
-target_include_directories(assembler PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(assembler PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Copy __built-ins.asm into the build directory alongside the compiled binary
 # REQURIED since we search for builtins based on the location of the executable
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/__built-ins.asm
-    ${CMAKE_CURRENT_BINARY_DIR}/__built-ins.asm
+    "${CMAKE_CURRENT_SOURCE_DIR}/__built-ins.asm"
+    "${CMAKE_CURRENT_BINARY_DIR}/__built-ins.asm"
     COPYONLY
 )
+
+target_compile_options(assembler PRIVATE -Wall -Wextra)
