@@ -15,7 +15,7 @@
 #include "isa.hpp"
 #include "token.hpp"
 
-constexpr std::array DATA_DIRECTIVES = {std::string_view{"@INI"}, std::string_view{"@UINIT"},
+constexpr std::array DATA_DIRECTIVES = {std::string_view{"@INI"}, std::string_view{"@UINI"},
                                         std::string_view{"@BLOCK"}};
 
 // calcualte all the addresses that have a true instruction in them

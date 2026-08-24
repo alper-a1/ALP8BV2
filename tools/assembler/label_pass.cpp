@@ -92,7 +92,8 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
             program_counter += INSTRS.find(first.raw)->second.GetWordSize();
 
             // ensure we cant increment out of bounds.
-            if (program_counter > UINT8_MAX) {
+            // a program filling all 256 bytes legally ends with pc == 256, only 257+ overflows.
+            if (program_counter > UINT8_MAX + 1) {
                 throw AsmError(tl.lineno, "Program counter ran out-of-bounds (>255)", tl.source_file);
             }
 
