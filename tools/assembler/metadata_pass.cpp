@@ -57,8 +57,8 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vect
                 if (tl.tokens.size() > 2) {
                     throw AsmError(tl.lineno, ".CLOCK directive recieved too many arguments", tl.source_file);
                 }
-                // turn the second argument of the clock directive into a uint32_t
-                uint32_t clock_hz = 0;
+                // turn the second argument of the clock directive into a uint16_t
+                std::uint16_t clock_hz = 0;
                 std::string_view clock_hz_str = tl.tokens[1].raw;
 
                 const char *first = clock_hz_str.data();
@@ -66,8 +66,8 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vect
                 auto [ptr, ec] = std::from_chars(first, last, clock_hz);
 
                 // ensure that the whole token is consumed such that stuff like "1000ABC" does not pass
-                if (ec == std::errc{} && ptr == last && clock_hz > 0) {
-                    metadata.clock = clock_hz_str; // or clock_hz_str depending on your struct
+                if (ec == std::errc{} && ptr == last) {
+                    metadata.clock = clock_hz;
                 } else {
                     throw AsmError(tl.lineno, ".CLOCK directive requires a valid positive integer", tl.source_file);
                 }
