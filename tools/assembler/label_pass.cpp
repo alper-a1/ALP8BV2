@@ -1,6 +1,7 @@
 #include "label_pass.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -119,8 +120,8 @@ GenerateSymbolMap(std::vector<TokenizedLine> lines) {
         }
 
         default: {
-            // should not happen, but just in case
-            throw AsmError(tl.lineno, "ASMERROR: FORBIDDEN DIRECTIVE IN LABEL PASS", tl.source_file);
+            assert(false && "meta and macro directives are consumed by earlier passes");
+            break;
         }
         }
     }

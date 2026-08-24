@@ -24,27 +24,18 @@ std::bitset<256> CalculateLiveAddresses(const std::vector<TokenizedLine> &lines)
     std::bitset<256> live;
 
     for (const auto &tl : lines) {
-        // ub guard - shouldnt happen
-        if (tl.tokens.empty()) {
-            continue;
-        }
+        assert(!tl.tokens.empty() && "lexer guarantees non-empty token lists; all passes preserve this");
 
         const auto &first = tl.GetFirstToken();
 
         switch (first.type) {
         case (TokenType::IDENTIFIER): {
-            // this shouldnt be possible in this pass; defensive only
-            if (!INSTRS.contains(first.raw)) {
-                throw AsmError(tl.lineno, "ASSEMBLERERROR: unknown identifer in codegen pass");
-            }
+            assert(INSTRS.contains(first.raw) && "label pass guarantees every identifier is a valid mnemonic");
 
             // either 1 or 2 based on the instruction
             auto size = INSTRS.find(first.raw)->second.GetWordSize();
 
-            // since this is an identifer line it SHOULD have been assigned a pc.
-            if (!tl.pc.has_value()) {
-                throw AsmError(tl.lineno, "ASSEMBLERERROR: instruction without assigned pc in codegen");
-            }
+            assert(tl.pc.has_value() && "label pass assigns a pc to every instruction line");
 
             // fill in the live bitset
             // pc should be in range since that was checked in previous pass
@@ -66,7 +57,8 @@ std::bitset<256> CalculateLiveAddresses(const std::vector<TokenizedLine> &lines)
         }
 
         default:
-            throw AsmError(tl.lineno, "ASSEMBLERERROR: invalid directive in codegen pass");
+            assert(false && "only identifiers and data directives reach codegen");
+            break;
         }
     }
 
@@ -86,12 +78,10 @@ uint8_t ExtractInt8FromToken(const Token &tok) {
 
         auto [ptr, ec] = std::from_chars(tok_raw_sv.data(), tok_raw_sv.data() + tok_raw_sv.size(), parsed, 16);
 
-        if (ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) {
-            return parsed;
-        }
-
-        // should be unreachable.
-        throw AsmError(0, "ASMERR: lexer failed to prevent bad immediate");
+        // the lexer validated every immediate; a failed parse is an assembler bug
+        assert((ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) &&
+               "lexer failed to prevent bad immediate (0x)");
+        return parsed;
     }
 
     // for: 0b & digits
@@ -100,12 +90,9 @@ uint8_t ExtractInt8FromToken(const Token &tok) {
 
         auto [ptr, ec] = std::from_chars(tok_raw_sv.data(), tok_raw_sv.data() + tok_raw_sv.size(), parsed, 2);
 
-        if (ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) {
-            return parsed;
-        }
-
-        // should be unreachable.
-        throw AsmError(0, "ASMERR: lexer failed to prevent bad immediate");
+        assert((ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) &&
+               "lexer failed to prevent bad immediate (0b)");
+        return parsed;
     }
 
     // for: - & digits
@@ -117,23 +104,17 @@ uint8_t ExtractInt8FromToken(const Token &tok) {
 
         auto [ptr, ec] = std::from_chars(tok_raw_sv.data(), tok_raw_sv.data() + tok_raw_sv.size(), parsed_signed, 10);
 
-        if (ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) {
-            return std::bit_cast<uint8_t>(parsed_signed);
-        }
-
-        // should be unreachable.
-        throw AsmError(0, "ASMERR: lexer failed to prevent bad immediate");
+        assert((ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) &&
+               "lexer failed to prevent bad immediate (signed)");
+        return std::bit_cast<uint8_t>(parsed_signed);
     }
 
     // assume its no prefix, plain positive number
     auto [ptr, ec] = std::from_chars(tok_raw_sv.data(), tok_raw_sv.data() + tok_raw_sv.size(), parsed, 10);
 
-    if (ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) {
-        return parsed;
-    }
-
-    // should be unreachable.
-    throw AsmError(0, "ASMERR: lexer failed to prevent bad immediate");
+    assert((ec == std::errc{} && ptr == tok_raw_sv.data() + tok_raw_sv.size()) &&
+           "lexer failed to prevent bad immediate (plain)");
+    return parsed;
 }
 
 std::array<uint8_t, 256> ConvertToMachineCode(const std::vector<TokenizedLine> &lines) {
@@ -336,7 +317,7 @@ std::array<uint8_t, 256> ConvertToMachineCode(const std::vector<TokenizedLine> &
         }
 
         default:
-            throw AsmError(tl.lineno, "ASSEMBLERERROR: invalid directive in codegen pass");
+            assert(false && "only identifiers and data directives reach codegen");
             break;
         }
     }

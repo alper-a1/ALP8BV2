@@ -1,5 +1,6 @@
 #include "metadata_pass.hpp"
 
+#include <cassert>
 #include <charconv>
 #include <cstdint>
 #include <ranges>
@@ -27,10 +28,7 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vect
     bool date_found = false;
 
     for (const auto &tl : lines) {
-        // shouldnt happen since we sanizied for this in lexer , but just incase
-        if (tl.tokens.empty()) {
-            continue;
-        }
+        assert(!tl.tokens.empty() && "lexer guarantees non-empty token lists; all passes preserve this");
 
         if (tl.tokens[0].type == TokenType::META_DIRECTIVE) {
             if (tl.tokens.size() < 2) {

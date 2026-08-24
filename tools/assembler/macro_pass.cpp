@@ -1,6 +1,7 @@
 #include "macro_pass.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <format>
 #include <map>
@@ -36,10 +37,7 @@ void MacroEngine::ResolveDefines() {
     parsed.reserve(this->lines.size()); // probably a similar number after parsing, reserve it.
 
     for (const auto &tl : this->lines) {
-        // shouldnt happen since we sanizied for this in lexer , but just incase
-        if (tl.tokens.empty()) {
-            continue;
-        }
+        assert(!tl.tokens.empty() && "lexer guarantees non-empty token lists; all passes preserve this");
         auto first = tl.GetFirstToken();
 
         // this line is not an identifer, cannot be define-replaced
@@ -123,9 +121,7 @@ void MacroEngine::ExpandMacros() {
     MacroDef current_macro;
 
     for (auto &tl : this->lines) {
-        if (tl.tokens.empty()) {
-            continue;
-        }
+        assert(!tl.tokens.empty() && "lexer guarantees non-empty token lists; all passes preserve this");
         Token &first = tl.GetFirstToken();
 
         // if in macro either append body or finish writing the macro
