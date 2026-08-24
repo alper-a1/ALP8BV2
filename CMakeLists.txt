@@ -21,6 +21,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(magic_enum)
 
+# --- Shared: .alp8b binary file format ---------------------------------------
+# INTERFACE target: compiles no sources, only exports shared/ as an include
+# dir to every target that links it (assembler writes, sim reads)
+
+add_library(alp8b_file INTERFACE)
+target_include_directories(alp8b_file INTERFACE "${CMAKE_SOURCE_DIR}/shared")
+
 # --- Helper: build a Verilator testbench executable -------------------------
 
 function(add_hardware_test TARGET_NAME TOP_MODULE CPP_TB VERILOG_SOURCES VERILOG_INCLUDES)
@@ -100,7 +107,7 @@ target_include_directories(${ALP8B} PRIVATE sim/include)
 target_compile_options(${ALP8B} PRIVATE -Wall -Wextra)
 
 # link the simlib & others
-target_link_libraries(${ALP8B} PRIVATE magic_enum::magic_enum SDL3::SDL3 ${ALP8B_SIM_LIB})
+target_link_libraries(${ALP8B} PRIVATE magic_enum::magic_enum SDL3::SDL3 alp8b_file ${ALP8B_SIM_LIB})
 
 
 # --- Subdir CMakeLists -----------------------------------------------------

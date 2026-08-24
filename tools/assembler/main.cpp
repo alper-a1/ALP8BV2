@@ -24,8 +24,10 @@ int main(int argc, char **argv) {
     if (argc >= 3) {
         output_path = argv[2];
     } else {
-        // default to same dir, just .bin output name
-        output_path = input_path.replace_extension(".bin");
+        // default to same dir, .alp8b extension
+        // note: replace_extension mutates in place and returns *this
+        output_path = input_path;
+        output_path.replace_extension(".alp8b");
     }
 
     try {
