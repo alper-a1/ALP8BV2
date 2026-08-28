@@ -20,11 +20,11 @@ module alu
     case (opcode)
       ALU_ADD: {cout_flag, result} = a + b;
 
-      ALU_ADC: {cout_flag, result} = a + b + cin_flag;
+      ALU_ADC: {cout_flag, result} = a + b + 9'(cin_flag);
 
       ALU_SUB: {cout_flag, result} = a - b;  // cout == 1 means borrow occured.
 
-      ALU_SBC: {cout_flag, result} = a - b - cin_flag;
+      ALU_SBC: {cout_flag, result} = a - b - 9'(cin_flag);
 
       ALU_OR: result = a | b;
 
