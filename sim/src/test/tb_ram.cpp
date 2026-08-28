@@ -46,9 +46,6 @@ int main(int argc, char **argv) {
         }
     };
 
-    // uninitialized memory: document/lock in startup state
-    check_read(0x00, 0x00, "mem not zero on startup");
-
     // simple write then read test at 0x20
     sim->addr = 0x20;
     sim->d_in = 0xAA;

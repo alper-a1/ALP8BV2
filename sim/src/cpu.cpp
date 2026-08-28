@@ -1,9 +1,13 @@
+#include <SDL3/SDL_timer.h>
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <memory>
+#include <span>
 
 // system installed libraries:
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -18,7 +22,8 @@
 #include "Valp8b.h"
 // required for cpu internals access
 // provides the type definitions for all components
-// unused __directly__, but requried.
+// unused __directly__, but requried
+// without this clang complains when digging through cpu_top members.
 #include "Valp8b__Syms.h" // IWYU pragma: keep
 // ---
 
@@ -35,14 +40,22 @@ struct SimState {
     // current 512 byte program rom
     Alp8bFile prom;
 
-    // raw verialtor contextp
+    // timing, all integer. SDL_GetTicks() is ms since SDL_Init, so 0 is a valid start
+    std::uint64_t last_frame_ms = 0; // previous frame's SDL_GetTicks()
+    std::uint64_t tick_accum = 0;    // fractional ticks, 1000 units = 1 tick
+    [[nodiscard]] std::uint16_t sim_clk_hz() const {
+        return this->prom.clock_hz[0] | (this->prom.clock_hz[1] << 8); // little endian
+    }
+
+    // verilator access
     std::unique_ptr<VerilatedContext> contextp;
-    // sim access
     std::unique_ptr<Valp8b> sim;
 
     // sim quick access functions
     [[nodiscard]] auto *dp() const { return sim->cpu_top->dp; }
-    [[nodiscard]] const auto *ram() const { return sim->cpu_top->dp->u_ram->mem.data(); }
+    [[nodiscard]] auto ram() const {
+        return std::span<const std::uint8_t>{sim->cpu_top->dp->u_ram->mem.data(), sim->cpu_top->dp->u_ram->mem.size()};
+    }
 
     // run one low -> high clock tick with eval
     void sim_tick() const {
@@ -50,6 +63,21 @@ struct SimState {
         this->sim->eval();
         this->sim->clk = 1;
         this->sim->eval();
+    }
+
+    // run the sim forward by the wall-clock time elapsed since the last frame
+    void sim_step(std::uint64_t now_ms) {
+        // cap dt so losing window focus can't time-warp the machine
+        std::uint64_t dt = now_ms - this->last_frame_ms;
+        this->last_frame_ms = now_ms;
+        dt = std::min<std::uint64_t>(dt, 100);
+
+        this->tick_accum += static_cast<std::uint64_t>(this->sim_clk_hz()) * dt;
+        const std::uint64_t ticks = this->tick_accum / 1000;
+        this->tick_accum %= 1000;
+        for (std::uint64_t i = 0; i < ticks; ++i) {
+            this->sim_tick();
+        }
     }
 
     // run the sim through a hardware reset cycle , refresh ram with fresh prog data
@@ -173,6 +201,10 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate) {
     auto *ss = static_cast<SimState *>(appstate);
+
+    // step the iteration accurate number of sim steps
+    const std::uint64_t now = SDL_GetTicks();
+    ss->sim_step(now);
 
     const int charsize = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
 
