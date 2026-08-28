@@ -8,6 +8,7 @@
 #include <system_error>
 #include <vector>
 
+#include "alp8b_file.hpp"
 #include "asm_error.hpp"
 #include "token.hpp"
 
@@ -91,16 +92,40 @@ std::pair<std::vector<TokenizedLine>, ProgramMetadata> ExtractMetadata(std::vect
         }
     }
 
+    // just use the source file of the last line (gaurenteed to be user file, since includes are appeneded to top)
+    // unless user fileis empty-- in which case , why ?? fine for now.
+    std::string src = lines.empty() ? "" : lines.back().source_file.string();
+
     // validate mandatory metadata
     if (!name_found) {
-        // just use the source file of the last line (gaurenteed to be user file, since includes are appeneded to top)
-        std::string src = lines.empty() ? "" : lines.back().source_file.string();
         throw AsmError(0, "Missing mandatory .NAME directive", src);
     }
 
     if (!clock_found) {
-        std::string src = lines.empty() ? "" : lines.back().source_file.string();
         throw AsmError(0, "Missing mandatory .CLOCK directive", src);
+    }
+
+    // warnings if the metadata will be truncated in the compiled output
+    // TODO: make these into warnings, NOT errors!!
+    if (metadata.name.size() > ALP8BF_CHARS_NAME) {
+        throw AsmError(0,
+                       std::format(".NAME directive max character limit is {}, current={}", ALP8BF_CHARS_NAME,
+                                   metadata.name.size()),
+                       src);
+    }
+
+    if (metadata.description.size() > ALP8BF_CHARS_DESC) {
+        throw AsmError(0,
+                       std::format(".DESC directive max character limit is {}, current={}", ALP8BF_CHARS_DESC,
+                                   metadata.description.size()),
+                       src);
+    }
+
+    if (metadata.date.size() > ALP8BF_CHARS_DATE) {
+        throw AsmError(0,
+                       std::format(".DATE directive max character limit is {}, current={}", ALP8BF_CHARS_DATE,
+                                   metadata.date.size()),
+                       src);
     }
 
     return {std::move(cleaned_lines), metadata};
