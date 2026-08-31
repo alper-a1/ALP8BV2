@@ -10,6 +10,7 @@ Checks: >
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-pro-type-vararg,
   -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,

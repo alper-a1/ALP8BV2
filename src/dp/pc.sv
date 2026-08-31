@@ -9,7 +9,7 @@ module pc (
     input logic we,
     input logic inc,
     input logic sw_rst,  // software reset active high (synchronous)
-    input logic rst_n,  // hardware reset active low (async)
+    input logic rst_n,  // hardware reset active low (synchronous)
     output logic [7:0] d_out
 );
 
