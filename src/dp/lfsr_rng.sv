@@ -8,7 +8,8 @@ module lfsr_rng (
 );
 
   // X^8 + X^6 + X^5 + X^4 + 1 feedback polynomial taps
-  logic feedback = rand_out[7] ^ rand_out[5] ^ rand_out[4] ^ rand_out[3];
+  logic feedback;
+  assign feedback = rand_out[7] ^ rand_out[5] ^ rand_out[4] ^ rand_out[3];
 
   always_ff @(posedge clk) begin : blockName
     if (!rst_n) begin

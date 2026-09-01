@@ -66,8 +66,10 @@ module cpu_datapath
   end
 
   // register file decoding:
-  logic [1:0] reg_a_addr = ir_out[3:2];
-  logic [1:0] reg_b_addr = ir_out[1:0];
+  logic [1:0] reg_a_addr;
+  logic [1:0] reg_b_addr;
+  assign reg_a_addr = ir_out[3:2];
+  assign reg_b_addr = ir_out[1:0];
 
   logic [7:0] reg_a_val;
   logic [7:0] reg_b_val;
