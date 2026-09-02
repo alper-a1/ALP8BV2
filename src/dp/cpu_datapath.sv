@@ -15,7 +15,7 @@ module cpu_datapath
 );
   // internal wiring
   // ---------------
-  logic [7:0] main_bus;
+  logic [7:0] main_bus  /*verilator public*/;
 
   // input of ram addr
   logic [7:0] addr_bus;
@@ -37,7 +37,8 @@ module cpu_datapath
   logic alu_carry_out, alu_zero_out;
 
   // other
-  logic [7:0] pc_out, lfsr_out;
+  logic [7:0] pc_out;
+  logic [7:0] lfsr_out /*verilator public*/;
 
   // component write enables
   // -----------------------

@@ -1,5 +1,6 @@
 #include <SDL3/SDL_timer.h>
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <memory>
 #include <span>
+#include <string_view>
 
 // system installed libraries:
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -93,28 +95,81 @@ SDL_Texture *CreateFontAtlasTexture(SDL_Renderer *renderer) {
     return atlas;
 }
 
-void DrawRamGrid(SDL_Renderer *renderer, SDL_Texture *atlas, const std::span<const std::uint8_t> &gridData,
-                 float originX, float originY, float cellSize) {
-    for (int row = 0; row < 16; row++) {
-        for (int col = 0; col < 16; col++) {
-            uint8_t c = gridData[(row * 16) + col];
+constexpr int WINDOW_WIDTH = 640;
+constexpr int WINDOW_HEIGHT = 480;
+constexpr float WIN_RATIO = static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT;
 
-            int grid_x = c % 16;
-            int grid_y = c / 16;
+// screen is a fixed grid of 16px character cells. all drawing is composed into
+// a framebuffer of cp437 codes, then blitted to the window in a single pass.
+constexpr int FB_W = WINDOW_WIDTH / 16;
+constexpr int FB_H = WINDOW_HEIGHT / 16;
+using Framebuffer = std::array<std::uint8_t, static_cast<std::size_t>(FB_W *FB_H)>;
 
-            SDL_FRect src = {
-                .x = static_cast<float>(grid_x * 8), .y = static_cast<float>(grid_y * 8), .w = 8.0F, .h = 8.0F};
-            SDL_FRect dst{
-                .x = originX + (col * cellSize), .y = originY + (row * cellSize), .w = cellSize, .h = cellSize};
+[[nodiscard]] constexpr int FBIndex(int x, int y) {
+    assert(x >= 0 && x < FB_W && y >= 0 && y < FB_H);
+    return (y * FB_W) + x;
+}
+
+void DrawText(Framebuffer &fb, int x, int y, std::string_view text) {
+    assert(x >= 0 && y >= 0 && y < FB_H && x + static_cast<int>(text.size()) <= FB_W);
+    for (int i = 0; i < static_cast<int>(text.size()); ++i) {
+        fb.at(FBIndex(x + i, y)) = static_cast<std::uint8_t>(text[i]);
+    }
+}
+
+// single-line box outline (cp437: ┌ ─ ┐ │ └ ┘)
+void DrawBox(Framebuffer &fb, int x, int y, int w, int h) {
+    assert(w >= 2 && h >= 2 && x >= 0 && y >= 0 && x + w <= FB_W && y + h <= FB_H);
+
+    constexpr std::uint8_t TL = 0xDA;
+    constexpr std::uint8_t TR = 0xBF;
+    constexpr std::uint8_t H = 0xC4;
+    constexpr std::uint8_t V = 0xB3;
+    constexpr std::uint8_t BL = 0xC0;
+    constexpr std::uint8_t BR = 0xD9;
+
+    fb.at(FBIndex(x, y)) = TL;
+    fb.at(FBIndex(x + w - 1, y)) = TR;
+    fb.at(FBIndex(x, y + h - 1)) = BL;
+    fb.at(FBIndex(x + w - 1, y + h - 1)) = BR;
+
+    for (int i = 1; i < w - 1; ++i) {
+        fb.at(FBIndex(x + i, y)) = H;
+        fb.at(FBIndex(x + i, y + h - 1)) = H;
+    }
+    for (int i = 1; i < h - 1; ++i) {
+        fb.at(FBIndex(x, y + i)) = V;
+        fb.at(FBIndex(x + w - 1, y + i)) = V;
+    }
+}
+
+// blit a 16x16 byte grid into the framebuffer, each byte drawn as its cp437 char
+void DrawRamGrid(Framebuffer &fb, const std::span<const std::uint8_t> &gridData, int x, int y) {
+    assert(x >= 0 && y >= 0 && x + 16 <= FB_W && y + 16 <= FB_H);
+    for (int row = 0; row < 16; ++row) {
+        for (int col = 0; col < 16; ++col) {
+            fb.at(FBIndex(x + col, y + row)) = gridData[(row * 16) + col];
+        }
+    }
+}
+
+// blit every non-empty cell (0 = empty) from the font atlas
+void RenderFramebuffer(SDL_Renderer *renderer, SDL_Texture *atlas, const Framebuffer &fb) {
+    for (int y = 0; y < FB_H; ++y) {
+        for (int x = 0; x < FB_W; ++x) {
+            const std::uint8_t c = fb.at(FBIndex(x, y));
+            if (c == 0) {
+                continue;
+            }
+
+            SDL_FRect src{
+                .x = static_cast<float>((c % 16) * 8), .y = static_cast<float>((c / 16) * 8), .w = 8.0F, .h = 8.0F};
+            SDL_FRect dst{.x = static_cast<float>(x * 16), .y = static_cast<float>(y * 16), .w = 16.0F, .h = 16.0F};
 
             SDL_RenderTexture(renderer, atlas, &src, &dst);
         }
     }
 }
-
-constexpr int WINDOW_WIDTH = 640;
-constexpr int WINDOW_HEIGHT = 480;
-constexpr float WIN_RATIO = static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT;
 
 // simstate for all the callbacks - connection to renderer and such
 struct SimState {
@@ -254,8 +309,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     auto *ss = new SimState();
     *appstate = ss;
 
-    if (!SDL_CreateWindowAndRenderer("ALP8BV2", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE, &ss->window,
-                                     &ss->renderer)) {
+    if (!SDL_CreateWindowAndRenderer("ALP8BV2 Simulator", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE,
+                                     &ss->window, &ss->renderer)) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -301,10 +356,40 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     const std::uint64_t now = SDL_GetTicks();
     ss->SimStep(now);
 
+    // compose the frame
+    Framebuffer fb{};
+
+    // header, drawn with spaces as raw null chars break parsing
+    DrawText(fb, 0, 0, "                  ALP8                 ");
+
+    // ram view: row 0 inside the box is a free title row (name/version/etc),
+    // the grid itself starts at row 2
+    DrawBox(fb, 1, 1, 18, 18);
+    DrawRamGrid(fb, ss->ram(), 2, 2);
+    DrawText(fb, 8, 1, "RAM"); // ram box header (overwrites after box draw)
+
+    // register view
+    DrawBox(fb, 21, 1, 18, 18);
+    DrawText(fb, 28, 1, "DATA"); // data box header
+    DrawText(fb, 22, 2, std::format("PC     {0:#04X}  {0:>3}", ss->dp()->u_pc->val));
+    DrawText(fb, 22, 3, std::format("IR     {0:#04X}  {0:>3}", ss->dp()->u_ir->val));
+    DrawText(fb, 22, 4, std::format("MAR    {0:#04X}  {0:>3}", ss->dp()->mar->val));
+    DrawText(fb, 22, 6, std::format("GPR0   {0:#04X}  {0:>3}", ss->dp()->gpr0->val));
+    DrawText(fb, 22, 7, std::format("GPR1   {0:#04X}  {0:>3}", ss->dp()->gpr1->val));
+    DrawText(fb, 22, 8, std::format("GPR2   {0:#04X}  {0:>3}", ss->dp()->gpr2->val));
+    DrawText(fb, 22, 9, std::format("GPR3   {0:#04X}  {0:>3}", ss->dp()->gpr3->val));
+    DrawText(fb, 22, 11, std::format("ALUTMP {0:#04X}  {0:>3}", ss->dp()->alutmp->val));
+    DrawText(fb, 22, 12, std::format("ALURES {0:#04X}  {0:>3}", ss->dp()->alures->val));
+    DrawText(fb, 21, 13,
+             "\xC3\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xB4"); // data seperator |----|
+    DrawText(fb, 22, 14,
+             std::format("FLGS    Z={:1}  C={:1}", ss->dp()->u_flags->zero_flag, ss->dp()->u_flags->carry_flag));
+    DrawText(fb, 22, 16, std::format("MAINBUS    {0:#04X}", ss->dp()->main_bus));
+
     SDL_SetRenderDrawColor(ss->renderer, 0, 0, 0, 255);
     SDL_RenderClear(ss->renderer);
 
-    DrawRamGrid(ss->renderer, ss->font_atlas, ss->ram(), 0.0F, 0.0F, 8.0F);
+    RenderFramebuffer(ss->renderer, ss->font_atlas, fb);
     SDL_RenderPresent(ss->renderer);
     return SDL_APP_CONTINUE;
 }
