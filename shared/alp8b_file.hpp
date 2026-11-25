@@ -29,10 +29,12 @@ struct Alp8bFile {
     // program data
     std::array<std::uint8_t, 256> program{};
 
+    // FPGA clock divider for clk enable counter
+    std::array<std::uint8_t, 2> clock_div{}; // little endian
+
     // padding (each program rom is 512 byte aligned)
     // can be used for future metadata
-    // - FPGA precalculated clock divider ?
-    std::array<std::uint8_t, 58> _reserved_padding{};
+    std::array<std::uint8_t, 56> _reserved_padding{};
 };
 
 // variety of safety & sanity checks to ensure no weird headaches later

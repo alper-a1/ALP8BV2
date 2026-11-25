@@ -25,14 +25,20 @@ constexpr std::array<std::uint8_t, 2> UI16ToArrayLE(std::uint16_t in) {
     return {static_cast<std::uint8_t>(in & 0xFF), static_cast<std::uint8_t>(in >> 8)};
 }
 
+constexpr std::uint32_t FPGA_CORE_CLK_HZ = 27'000'000;
+
 void WriteBinary(const std::array<std::uint8_t, 256> &data, const ProgramMetadata &meta,
                  const std::filesystem::path &location) {
 
-    Alp8bFile to_write{.name = StringToCharArray<ALP8BF_CHARS_NAME>(meta.name),
-                       .date = StringToCharArray<ALP8BF_CHARS_DATE>(meta.date),
-                       .description = StringToCharArray<ALP8BF_CHARS_DESC>(meta.description),
-                       .clock_hz = UI16ToArrayLE(meta.clock),
-                       .program = data};
+    Alp8bFile to_write{
+        .name = StringToCharArray<ALP8BF_CHARS_NAME>(meta.name),
+        .date = StringToCharArray<ALP8BF_CHARS_DATE>(meta.date),
+        .description = StringToCharArray<ALP8BF_CHARS_DESC>(meta.description),
+        .clock_hz = UI16ToArrayLE(meta.clock),
+        .program = data,
+        .clock_div =
+            UI16ToArrayLE(FPGA_CORE_CLK_HZ / meta.clock), // TODO: this being uint16 means that minimum clock is ~412.
+    };
 
     std::ofstream out(location, std::ios::binary);
     if (!out) {
