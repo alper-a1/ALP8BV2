@@ -4,6 +4,7 @@
 module lfsr_rng (
     input  logic       clk,
     input  logic       rst_n,    // hardware active low reset (async)
+    input  logic       en,
     output logic [7:0] rand_out
 );
 
@@ -15,7 +16,10 @@ module lfsr_rng (
     if (!rst_n) begin
       rand_out <= 8'hAA;
     end else begin
-      rand_out <= {rand_out[6:0], feedback};
+      if (en) begin
+        rand_out <= {rand_out[6:0], feedback};
+
+      end
     end
   end
 

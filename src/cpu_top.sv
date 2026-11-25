@@ -6,7 +6,8 @@ module cpu_top
   import instruction_types::instruction_t;
 (
     input logic clk,
-    input logic rst_n  // syncronous
+    input logic rst_n,  // syncronous
+    input logic en
 );
   // internal wiring between fsm & datapath
   logic zf, cf;
@@ -19,7 +20,8 @@ module cpu_top
       .zero_flag(zf),
       .carry_flag(cf),
       .instr(instr),
-      .ctrl(ctrl)
+      .ctrl(ctrl),
+      .en(en)
   );
 
   cpu_datapath dp (
@@ -28,7 +30,8 @@ module cpu_top
       .zero_flag(zf),
       .carry_flag(cf),
       .ctrl(ctrl),
-      .ir_out(instr)
+      .ir_out(instr),
+      .en(en)
   );
 
 endmodule

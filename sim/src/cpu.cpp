@@ -334,6 +334,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     // direct copy since the file data is ensured to be trival copy!
     ss->prom = result.value();
 
+    ss->sim->en = 1; // no need for a clock gated enable when the clock is perfect in the simulation
     ss->SimReset();
 
     return SDL_APP_CONTINUE;

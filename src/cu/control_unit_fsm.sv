@@ -10,8 +10,8 @@ module control_unit_fsm
   import alu_defs::*;
 (
     input logic clk,
-    input logic rst_n, // synchronous reset (back to S_FETCH_IR)
-
+    input logic rst_n,  // synchronous reset (back to S_FETCH_IR)
+    input logic en,
 
     input logic zero_flag,
     input logic carry_flag,
@@ -46,7 +46,7 @@ module control_unit_fsm
       // TODO: error state eventually cleans everything and restarts (ram/pc reset)
       // for now, error state just bricks the cpu
       state <= S_FETCH_IR;
-    end else begin
+    end else if (en) begin
       state <= next_state;
     end
   end

@@ -6,6 +6,7 @@ module flags (
     input logic clk,
 
     input logic rst_n,  // hardware reset active low (async)
+    input logic en,
 
     input  logic z_in,
     input  logic z_we,
@@ -26,11 +27,11 @@ module flags (
       carry_flag <= 1'b0;
       zero_flag  <= 1'b0;
     end else begin
-      if (c_we) begin
+      if (c_we && en) begin
         carry_flag <= c_in;
       end
 
-      if (z_we) begin
+      if (z_we && en) begin
         zero_flag <= z_in;
       end
     end

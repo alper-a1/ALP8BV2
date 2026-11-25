@@ -4,6 +4,7 @@ module reg8 (
     input logic clk,
     input logic [7:0] d_in,
     input logic we,
+    input logic en,
     output logic [7:0] d_out
 );
 
@@ -11,7 +12,7 @@ module reg8 (
   logic [7:0] val  /*verilator public*/;
 
   always_ff @(posedge clk) begin
-    if (we) begin
+    if (we && en) begin
       val <= d_in;
     end
   end

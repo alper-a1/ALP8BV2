@@ -10,6 +10,7 @@ module pc (
     input logic inc,
     input logic sw_rst,  // software reset active high (synchronous)
     input logic rst_n,  // hardware reset active low (synchronous)
+    input logic en,
     output logic [7:0] d_out
 );
 
@@ -17,21 +18,25 @@ module pc (
   logic [7:0] val  /*verilator public*/;
 
   always_ff @(posedge clk) begin
-    if (!rst_n) begin
-      val <= 8'b0;
-    end else if (sw_rst) begin
-      val <= 8'b0;
-    end else if (inc) begin
-      val <= val + 8'd1;
-    end else if (we) begin
-      val <= d_in;
-    end
+    if (en) begin
+      if (!rst_n) begin
+        val <= 8'b0;
+      end else if (sw_rst) begin
+        val <= 8'b0;
+      end else if (inc) begin
+        val <= val + 8'd1;
+      end else if (we) begin
+        val <= d_in;
+      end
 
-    if ($countones({sw_rst, we, inc}) > 1) begin : CHK_SINGLE_DRIVER
-      $error("pc: rst/inc/we asserted simultaneously");
+      if ($countones({sw_rst, we, inc}) > 1) begin : CHK_SINGLE_DRIVER
+        $error("pc: rst/inc/we asserted simultaneously");
+      end
+
     end
 
   end
+
 
   assign d_out = val;
 

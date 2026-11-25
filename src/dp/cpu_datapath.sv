@@ -5,6 +5,7 @@ module cpu_datapath
 (
     input logic clk,
     input logic rst_n,
+    input en,
 
     input control_signals_t ctrl,
 
@@ -38,7 +39,7 @@ module cpu_datapath
 
   // other
   logic [7:0] pc_out;
-  logic [7:0] lfsr_out /*verilator public*/;
+  logic [7:0] lfsr_out  /*verilator public*/;
 
   // component write enables
   // -----------------------
@@ -157,62 +158,71 @@ module cpu_datapath
       .clk(clk),
       .d_in(main_bus),
       .d_out(gpr0_out),
-      .we(gpr0_we)
+      .we(gpr0_we),
+      .en(en)
   );
 
   reg8 gpr1 (
       .clk(clk),
       .d_in(main_bus),
       .d_out(gpr1_out),
-      .we(gpr1_we)
+      .we(gpr1_we),
+      .en(en)
   );
 
   reg8 gpr2 (
       .clk(clk),
       .d_in(main_bus),
       .d_out(gpr2_out),
-      .we(gpr2_we)
+      .we(gpr2_we),
+      .en(en)
   );
 
   reg8 gpr3 (
       .clk(clk),
       .d_in(main_bus),
       .d_out(gpr3_out),
-      .we(gpr3_we)
+      .we(gpr3_we),
+      .en(en)
   );
 
   reg8 u_ir (
       .clk(clk),
       .d_in(main_bus),
       .d_out(ir_out),
-      .we(ir_we)
+      .we(ir_we),
+      .en(en)
   );
 
   reg8 mar (
       .clk(clk),
       .d_in(main_bus),
       .d_out(mar_out),
-      .we(mar_we)
+      .we(mar_we),
+      .en(en)
   );
 
   reg8 alutmp (
       .clk(clk),
       .d_in(main_bus),
       .d_out(alutmp_out),
-      .we(alutmp_we)
+      .we(alutmp_we),
+      .en(en)
   );
 
   reg8 alures (
       .clk(clk),
       .d_in(alu_out),
       .d_out(alures_out),
-      .we(alures_we)
+      .we(alures_we),
+      .en(en)
   );
 
   lfsr_rng lfsr (
       .clk(clk),
       .rst_n(rst_n),
-      .rand_out(lfsr_out)
+      .rand_out(lfsr_out),
+      .en(en)
   );
 
   ram u_ram (
@@ -230,18 +240,20 @@ module cpu_datapath
       .we(pc_we),
       .d_out(pc_out),
       .sw_rst(ctrl.pc_rst),
-      .inc(ctrl.pc_inc)
+      .inc(ctrl.pc_inc),
+      .en(en)
   );
 
   flags u_flags (
-      .clk  (clk),
+      .clk(clk),
       .rst_n(rst_n),
       .z_out(zero_flag),
-      .z_in (alu_zero_out),
-      .z_we (ctrl.flgs_z_we),
+      .z_in(alu_zero_out),
+      .z_we(ctrl.flgs_z_we),
       .c_out(carry_flag),
-      .c_in (flags_carry_input),
-      .c_we (ctrl.flgs_c_we)
+      .c_in(flags_carry_input),
+      .c_we(ctrl.flgs_c_we),
+      .en(en)
   );
 
   alu u_alu (
