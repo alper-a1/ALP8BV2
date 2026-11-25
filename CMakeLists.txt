@@ -44,7 +44,9 @@ function(add_hardware_test TARGET_NAME TOP_MODULE CPP_TB VERILOG_SOURCES VERILOG
         TOP_MODULE      "${TOP_MODULE}"
         SOURCES         ${VERILOG_SOURCES}
         INCLUDE_DIRS    ${VERILOG_INCLUDES}
-        VERILATOR_ARGS  "-Wall"
+        # UNOPTPUBLIC fires on every /*verilator public*/ signal, which we use
+        # on purpose (sim visualiser & testbenches read internals from C++)
+        VERILATOR_ARGS  "-Wall" "-Wno-UNOPTPUBLIC"
     )
 
     # Force all includes exported by the simulation model to be SYSTEM headers
@@ -79,6 +81,12 @@ add_hardware_test(Vtbsim_ram ram
     "src/dp"
 )
 
+add_hardware_test(Vtbsim_isa cpu_top
+    "sim/src/test/tb_isa.cpp"
+    "src/cpu_top.sv"
+    "src/dp;src/cu;src/dp/alu"
+)
+
 # --- Top-level executable: ALP8BV2 ------------------------------------------
 
 set(ALP8B alp8bv2)
@@ -94,7 +102,9 @@ verilate(${ALP8B_SIM_LIB}
     TOP_MODULE      cpu_top
     SOURCES         src/cpu_top.sv
     INCLUDE_DIRS    "src/dp;src/cu;src/dp/alu"
-    VERILATOR_ARGS  "-Wall"
+    # UNOPTPUBLIC fires on every /*verilator public*/ signal, which we use
+    # on purpose (sim visualiser & testbenches read internals from C++)
+    VERILATOR_ARGS  "-Wall" "-Wno-UNOPTPUBLIC"
 )
 
 set_target_properties(${ALP8B_SIM_LIB} PROPERTIES
