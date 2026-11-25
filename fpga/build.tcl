@@ -8,7 +8,7 @@
 # =============================================================================
 
 # --- project knobs ------------------------------------------------------------
-set TOP     top_blink
+set TOP     alp8b_top
 set DEVICE  GW1NR-LV9QN88PC6/I5
 set DEVVER  C
 
@@ -23,7 +23,21 @@ set ROOT       [file normalize $SCRIPT_DIR/..]
 # them below — this is how src/*.sv files will join for M1, e.g. just:
 #   src/cpu_top.sv
 set SOURCES [list \
-    fpga/top/top_blink.v \
+    fpga/top/alp8b_top.sv \
+    shared/alp8b_file.sv \
+    src/cpu_top.sv \
+    src/cu/control_signals.sv \
+    src/cu/control_unit_fsm.sv \
+    src/cu/fsm_states.sv \
+    src/cu/instruction_types.sv \
+    src/dp/alu/alu.sv \
+    src/dp/alu/alu_defs.sv \
+    src/dp/alu/flags.sv \
+    src/dp/cpu_datapath.sv \
+    src/dp/lfsr_rng.sv \
+    src/dp/pc.sv \
+    src/dp/ram.sv \
+    src/dp/reg8.sv \
 ]
 set CONSTRAINTS [list \
     fpga/constraints/tangnano9k.cst \
@@ -38,5 +52,7 @@ foreach f $CONSTRAINTS  { add_file -type [expr {[file extension $f] eq ".cst" ? 
 
 set_option -top_module $TOP
 set_option -verilog_std sysv2017
+# for `include of the package files in src/ (bare-name resolution, per step-0)
+set_option -include_path "$ROOT/src/cu;$ROOT/src/dp;$ROOT/src/dp/alu"
 
 run all

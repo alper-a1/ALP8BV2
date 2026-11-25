@@ -1,2 +1,2 @@
-# Gowin CLI build output (regenerate with `make`)
-gowin_out/
+# Gowin CLI build output (regenerate with `make`; gowin_out_* = scratch flows like step0)
+gowin_out*/

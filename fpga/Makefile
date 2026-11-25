@@ -7,7 +7,7 @@
 #   make clean    remove build output
 
 GOWIN_OUT := gowin_out
-TOP       := top_blink
+TOP       := alp8b_top
 BITSTREAM := $(GOWIN_OUT)/$(TOP)/impl/pnr/$(TOP).fs
 
 .PHONY: all flash flash-spi open clean
@@ -25,4 +25,4 @@ open:
 	gw_ide $(GOWIN_OUT)/$(TOP)/$(TOP).gprj &
 
 clean:
-	rm -rf $(GOWIN_OUT)
+	rm -rf gowin_out*

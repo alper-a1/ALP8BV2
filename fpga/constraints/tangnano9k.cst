@@ -8,8 +8,8 @@
 IO_LOC "clk" 52;
 IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-IO_LOC "rst_n" 4;            // user button K1 (pressed -> low)
-IO_PORT "rst_n" PULL_MODE=UP;
+IO_LOC "k1" 4;              // user button K1 (pressed -> low)
+IO_PORT "k1" PULL_MODE=UP;
 
 IO_LOC "k2" 3;               // user button K2 (pressed -> low)
 IO_PORT "k2" PULL_MODE=UP;
