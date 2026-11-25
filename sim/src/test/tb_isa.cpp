@@ -99,7 +99,11 @@ struct IsaTestCase {
 class IsaBench {
   public:
     IsaBench()
-        : contextp(std::make_unique<VerilatedContext>()), sim(std::make_unique<Vcpu_top>(contextp.get(), "tb_isa")) {}
+        : contextp(std::make_unique<VerilatedContext>()), sim(std::make_unique<Vcpu_top>(contextp.get(), "tb_isa")) {
+        // no clock gating in the simulation; same rationale as sim/src/cpu.cpp (en permanently active).
+        // the ld_* bootloader pins are left 0: ram loading here is done by poking mem directly.
+        sim->en = 1;
+    }
 
     // load init_ram, clear all file registers, run the hardware reset cycle,
     // advance `ticks` edges, and return the resulting machine state.

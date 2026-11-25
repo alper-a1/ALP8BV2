@@ -5,9 +5,14 @@ module cpu_datapath
 (
     input logic clk,
     input logic rst_n,
-    input en,
+    input logic en,
 
     input control_signals_t ctrl,
+
+    // bootloader inputs (cpu external)
+    input logic ld_we,
+    input logic [7:0] ld_addr,
+    input logic [7:0] ld_d_in,
 
     output logic zero_flag,
     output logic carry_flag,
@@ -227,10 +232,13 @@ module cpu_datapath
 
   ram u_ram (
       .clk(clk),
-      .d_in(main_bus),
       .d_out(ram_out),
-      .we(ram_we),
-      .addr(addr_bus)
+      .cpu_d_in(main_bus),
+      .cpu_we(ram_we),
+      .cpu_addr(addr_bus),
+      .ld_we(ld_we),
+      .ld_addr(ld_addr),
+      .ld_d_in(ld_d_in)
   );
 
   pc u_pc (

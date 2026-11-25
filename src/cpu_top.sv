@@ -7,7 +7,13 @@ module cpu_top
 (
     input logic clk,
     input logic rst_n,  // syncronous
-    input logic en
+    input logic en,
+
+    // bootloader inputs (cpu external)
+    input logic ld_we,
+    input logic [7:0] ld_addr,
+    input logic [7:0] ld_d_in
+
 );
   // internal wiring between fsm & datapath
   logic zf, cf;
@@ -31,7 +37,11 @@ module cpu_top
       .carry_flag(cf),
       .ctrl(ctrl),
       .ir_out(instr),
-      .en(en)
+      .en(en),
+      // bootloader
+      .ld_we(ld_we),
+      .ld_addr(ld_addr),
+      .ld_d_in(ld_d_in)
   );
 
 endmodule
